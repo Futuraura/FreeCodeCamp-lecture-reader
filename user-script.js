@@ -937,11 +937,13 @@ body:has(.fcc-config-overlay) {
           th.style.left = p + "%";
           fi.style.width = p + "%";
           t.dataset.value = v;
-          vE && (vE.textContent = lb[v] || v);
+          vE && (vE.textContent = fmt(v));
+          emit(v);
           return v;
         },
         sD = (e) => {
           iD = !0;
+          t.dataset.dragging = "true";
           const cX = e.touches && e.touches.length ? e.touches[0].clientX : e.clientX;
           uS(cX);
           e.preventDefault();
@@ -952,7 +954,11 @@ body:has(.fcc-config-overlay) {
           uS(cX);
           e.preventDefault();
         },
-        stD = () => (iD = !1);
+        stD = () => {
+          if (!iD) return;
+          iD = !1;
+          t.dataset.dragging = "false";
+        };
       th.addEventListener("mousedown", sD);
       t.addEventListener("mousedown", sD);
       d.addEventListener("mousemove", dr);
