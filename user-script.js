@@ -718,56 +718,215 @@ body:has(.fcc-config-overlay) {
       }, 1e3);
     }
   }, 1e3);
-  let c,
-    bB,
-    sB2,
-    wM = !1;
-  const oMH = () => {
-      gsap && bB && gsap.to(bB, { scale: 2, duration: 0.3 });
-    },
-    oMHO = () => {
-      gsap && bB && gsap.to(bB, { scale: 1, duration: 0.3 });
-    };
-  gS.onload = () => {
-    c = qS(o, ".fcc-cursor");
-    bB = qS(o, ".fcc-cursor__ball--big");
-    sB2 = qS(o, ".fcc-cursor__ball--small");
-    const tPC = (e) => {
-        wM = e.matches;
-        !e.matches && (c.style.display = "none");
+  gS.onload = () => {};
+  const aHL = () => {},
+    cfg = {
+      ttsEngine: null,
+      subtitle: {
+        bgColor: "rgba(0, 0, 0, 0.85)",
+        textColor: "#ffffff",
+        highlightStyle: "text",
+        highlightTextColor: "#ffd700",
+        highlightBgColor: "#ffd700",
+        bgOpacity: 85,
+        fontSize: 24,
       },
-      mQ = matchMedia("(min-width:768px)");
-    tPC(mQ);
-    mQ.addListener(tPC);
-    o.addEventListener("mousemove", (e) => {
-      wM && (c.style.display = "block");
-      gsap.to(bB, { x: e.clientX - 20, y: e.clientY - 20, duration: 0.4, ease: "power2.out" });
-      gsap.to(sB2, { x: e.clientX - 5, y: e.clientY - 5, duration: 0.1 });
-    });
-    aHL();
-  };
-  const aHL = () =>
-      qSA(o, ".heroui-button,.fcc-radio-option,.fcc-compact-radio,.fcc-slider-track").forEach(
-        (e) => {
-          e.addEventListener("mouseenter", oMH);
-          e.addEventListener("mouseleave", oMHO);
+    },
+    tLock = { locked: !1 },
+    sLib = {
+      el: null,
+      words: [],
+      cIdx: -1,
+      aId: null,
+      hBg: null,
+      init(txt) {
+        if (!this.el) {
+          const pv = cE("div");
+          pv.className = "fcc-subtitle-preview";
+          pv.innerHTML = `<div class="fcc-subtitle-container"><p class="fcc-subtitle-text"></p></div>`;
+          b.appendChild(pv);
+          this.el = qS(pv, ".fcc-subtitle-text");
+          this.ctn = qS(pv, ".fcc-subtitle-container");
+          this.mD(this.ctn);
+          if (cfg.subtitle.highlightStyle === "background") {
+            this.hBg = cE("div");
+            this.hBg.className = "fcc-subtitle-highlight-bg";
+            this.el.insertBefore(this.hBg, this.el.firstChild);
+          }
         }
-      ),
-    cfg = { ttsEngine: null },
+        this.words = txt.split(" ");
+        this.el.innerHTML = this.words.map((w) => `<span>${w}</span>`).join(" ");
+        if (this.hBg && cfg.subtitle.highlightStyle === "background") {
+          this.el.insertBefore(this.hBg, this.el.firstChild);
+        }
+        this.cIdx = -1;
+      },
+      mD(e) {
+        let x = 0,
+          y = 0,
+          iD = !1;
+        const mS = (ev) => {
+          iD = !0;
+          const cX = ev.touches && ev.touches.length ? ev.touches[0].clientX : ev.clientX;
+          const cY = ev.touches && ev.touches.length ? ev.touches[0].clientY : ev.clientY;
+          x = cX - e.offsetLeft;
+          y = cY - e.offsetTop;
+          ev.preventDefault();
+        };
+        const mM = (ev) => {
+          if (!iD) return;
+          const cX = ev.touches && ev.touches.length ? ev.touches[0].clientX : ev.clientX;
+          const cY = ev.touches && ev.touches.length ? ev.touches[0].clientY : ev.clientY;
+          e.style.left = cX - x + "px";
+          e.style.top = cY - y + "px";
+          e.style.transform = "none";
+          e.parentElement.style.transform = "none";
+          ev.preventDefault();
+        };
+        const mE = () => (iD = !1);
+        e.addEventListener("mousedown", mS);
+        e.addEventListener("touchstart", mS);
+        d.addEventListener("mousemove", mM);
+        d.addEventListener("touchmove", mM);
+        d.addEventListener("mouseup", mE);
+        d.addEventListener("touchend", mE);
+      },
+      aW() {
+        if (!this.el || this.words.length === 0) return;
+        const spans = qSA(this.el, "span");
+        if (this.cIdx >= 0 && this.cIdx < spans.length) {
+          spans[this.cIdx].classList.remove("highlighted");
+          spans[this.cIdx].style.color = "";
+        }
+        this.cIdx = (this.cIdx + 1) % this.words.length;
+        const currentSpan = spans[this.cIdx];
+        currentSpan.classList.add("highlighted");
+
+        if (cfg.subtitle.highlightStyle === "background" && this.hBg) {
+          const rect = currentSpan.getBoundingClientRect();
+          const parentRect = this.el.getBoundingClientRect();
+          const padding = 2;
+          currentSpan.style.color = cfg.subtitle.highlightTextColor;
+          gsap.to(this.hBg, {
+            left: rect.left - parentRect.left - padding,
+            top: rect.top - parentRect.top - padding,
+            width: rect.width + padding * 2,
+            height: rect.height + padding * 2,
+            duration: 0.3,
+            ease: "power2.out",
+          });
+        } else if (cfg.subtitle.highlightStyle === "text") {
+          currentSpan.style.color = cfg.subtitle.highlightTextColor;
+        }
+      },
+      sA(int = 600) {
+        this.stA();
+        this.aW();
+        this.aId = setInterval(() => this.aW(), int);
+      },
+      stA() {
+        if (this.aId) {
+          clearInterval(this.aId);
+          this.aId = null;
+        }
+        const spans = qSA(this.el, "span");
+        spans.forEach((s) => {
+          s.classList.remove("highlighted");
+          s.style.color = "";
+        });
+        if (this.hBg) {
+          this.hBg.style.opacity = "0";
+        }
+        this.cIdx = -1;
+      },
+      uS() {
+        if (!this.ctn) return;
+        const {
+          bgColor,
+          textColor,
+          highlightStyle,
+          highlightTextColor,
+          highlightBgColor,
+          fontSize,
+        } = cfg.subtitle;
+        this.ctn.style.background = bgColor;
+        this.el.style.color = textColor;
+        this.el.style.fontSize = fontSize + "px";
+
+        if (highlightStyle === "background" && !this.hBg) {
+          this.hBg = cE("div");
+          this.hBg.className = "fcc-subtitle-highlight-bg";
+          this.el.insertBefore(this.hBg, this.el.firstChild);
+        } else if (highlightStyle === "text" && this.hBg) {
+          this.hBg.remove();
+          this.hBg = null;
+        }
+
+        if (this.hBg) {
+          this.hBg.style.background = highlightBgColor;
+          this.hBg.style.opacity = "1";
+        }
+
+        const spans = qSA(this.el, "span");
+        spans.forEach((s, i) => {
+          if (s.classList.contains("highlighted")) {
+            if (highlightStyle === "background" && this.hBg) {
+              s.style.color = highlightTextColor;
+              const rect = s.getBoundingClientRect();
+              const parentRect = this.el.getBoundingClientRect();
+              const padding = 2;
+              this.hBg.style.left = rect.left - parentRect.left - padding + "px";
+              this.hBg.style.top = rect.top - parentRect.top - padding + "px";
+              this.hBg.style.width = rect.width + padding * 2 + "px";
+              this.hBg.style.height = rect.height + padding * 2 + "px";
+            } else {
+              s.style.color = highlightTextColor;
+            }
+          } else {
+            s.style.color = textColor;
+          }
+        });
+      },
+      dest() {
+        this.stA();
+        if (this.el && this.el.parentElement && this.el.parentElement.parentElement) {
+          this.el.parentElement.parentElement.remove();
+        }
+        this.el = null;
+        this.ctn = null;
+        this.hBg = null;
+        this.words = [];
+        this.cIdx = -1;
+      },
+    },
     cCS = (mi, ma, st, dV, lb, vI) => {
       const p = ((dV - mi) / (ma - mi)) * 100;
-      return `<div class="fcc-slider-track" data-min="${mi}" data-max="${ma}" data-step="${st}" data-value="${dV}"><div class="fcc-slider-fill" style="width:${p}%"></div><div class="fcc-slider-thumb" style="left:${p}%"></div></div><div class="fcc-slider-value" id="${vI}">${
-        lb[dV] || dV
-      }</div>`;
+      return `
+<div
+  class="fcc-slider-track"
+  data-min="${mi}"
+  data-max="${ma}"
+  data-step="${st}"
+  data-value="${dV}"
+>
+  <div class="fcc-slider-fill" style="width:${p}%"></div>
+  <div class="fcc-slider-thumb" style="left:${p}%"></div>
+</div>
+<div class="fcc-slider-value" id="${vI}">${lb[dV] || dV}</div>
+`;
     },
     iS = (t, lb, vE) => {
       const th = qS(t, ".fcc-slider-thumb"),
         fi = qS(t, ".fcc-slider-fill"),
         mi = parseFloat(t.dataset.min),
         ma = parseFloat(t.dataset.max),
-        st = parseFloat(t.dataset.step);
+        st = parseFloat(t.dataset.step),
+        fmt = (v) => (lb && lb[v] !== void 0 ? lb[v] : v);
       let iD = !1;
-      const uS = (cX) => {
+      t.dataset.dragging = "false";
+      const emit = (v) =>
+          t.dispatchEvent(new CustomEvent("fcc-slider-change", { detail: { value: v } })),
+        uS = (cX) => {
           const r = t.getBoundingClientRect();
           let p = ((cX - r.left) / r.width) * 100;
           p = Math.max(0, Math.min(100, p));
