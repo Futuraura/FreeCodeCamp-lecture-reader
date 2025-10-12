@@ -1286,12 +1286,378 @@ body:has(.fcc-config-overlay) {
           sC.innerHTML = cCS(0.8, 1.2, 0.1, 1, sL, "speed-value");
           iS(qS(sC, ".fcc-slider-track"), sL, qS(sC, "#speed-value"));
         }
-        qS(gI, "#back-btn").addEventListener("click", () => sIC(!0));
-        qS(gI, "#finish-btn").addEventListener("click", () => {
+        qS(gI, "#back-btn").addEventListener("click", () => !tLock.locked && sIC(!0));
+        qS(gI, "#next-btn").addEventListener("click", () => !tLock.locked && sSC1());
+      }, eLD);
+    },
+    sSC1 = (bw = !1) => {
+      const cH = `<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Background Opacity</label>
+  <p class="fcc-option-desc">Adjust the transparency of the subtitle background.</p>
+  <div class="fcc-slider-container" id="bg-opacity-slider"></div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Text Color</label>
+  <p class="fcc-option-desc">Choose the color for subtitle text.</p>
+  <div class="fcc-color-picker-group">
+    <div class="fcc-color-input-wrapper">
+      <div class="fcc-color-input-row">
+        <input
+          type="text"
+          class="fcc-color-input coloris-input"
+          id="text-color-input"
+          data-coloris
+        />
+        <span class="fcc-color-preview" id="text-color-preview"></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Font Size</label>
+  <p class="fcc-option-desc">Adjust the size of subtitle text.</p>
+  <div class="fcc-slider-container" id="font-size-slider"></div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Quick Size Presets</label>
+  <p class="fcc-option-desc">Choose a preset size or customize with the slider above.</p>
+  <div class="fcc-size-preset">
+    <button type="button" class="fcc-size-btn" data-size="18">Small</button
+    ><button type="button" class="fcc-size-btn" data-size="24">Medium</button
+    ><button type="button" class="fcc-size-btn" data-size="32">Large</button
+    ><button type="button" class="fcc-size-btn" data-size="40">Extra Large</button>
+  </div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Highlight Style</label>
+  <p class="fcc-option-desc">Choose how words are highlighted during reading.</p>
+  <div class="fcc-radio-group">
+    <div class="fcc-compact-radio selected" data-value="text">
+      <label
+        ><input type="radio" name="highlight-style" value="text" checked /><span class="fcc-radio-title"
+          >Text Color Change</span
+        ></label
+      >
+    </div>
+    <div class="fcc-compact-radio" data-value="background">
+      <label
+        ><input type="radio" name="highlight-style" value="background" /><span class="fcc-radio-title"
+          >Background Rectangle</span
+        ></label
+      >
+    </div>
+  </div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Highlight Text Color</label>
+  <p class="fcc-option-desc">Color of the highlighted word text.</p>
+  <div class="fcc-color-picker-group">
+    <div class="fcc-color-input-wrapper">
+      <div class="fcc-color-input-row">
+        <input
+          type="text"
+          class="fcc-color-input coloris-input"
+          id="highlight-text-color-input"
+          data-coloris
+        />
+        <span class="fcc-color-preview" id="highlight-text-color-preview"></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="fcc-option-group fcc-animate-element" id="highlight-bg-color-group">
+  <label class="fcc-option-label">Highlight Background Color</label>
+  <p class="fcc-option-desc">Background color when using rectangle highlight style.</p>
+  <div class="fcc-color-picker-group">
+    <div class="fcc-color-input-wrapper">
+      <div class="fcc-color-input-row">
+        <input
+          type="text"
+          class="fcc-color-input coloris-input"
+          id="highlight-bg-color-input"
+          data-coloris
+        />
+        <span class="fcc-color-preview" id="highlight-bg-color-preview"></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="fcc-button-group fcc-animate-element">
+  <button type="button" class="heroui-button heroui-button-secondary" id="back-btn">
+    <span class="heroui-button-text">Back</span></button
+  ><button type="button" class="heroui-button" id="finish-btn">
+    <span class="heroui-button-text">Finish</span>
+  </button>
+</div>
+`;
+      tTP(cH, "Subtitle Appearance", bw);
+      const eLD = 1200 + 8 * 200;
+      setTimeout(() => {
+        sLib.init("Let learning be the light of your new life");
+        sLib.uS();
+        sLib.sA(300);
+
+        const oL = {};
+        for (let i2 = 0; i2 <= 100; i2 += 5) oL[i2] = `${i2}%`;
+        const oC = qS(gI, "#bg-opacity-slider");
+        oC.innerHTML = cCS(0, 100, 5, cfg.subtitle.bgOpacity, oL, "opacity-value");
+        const oV = qS(oC, "#opacity-value"),
+          oT = qS(oC, ".fcc-slider-track");
+        iS(oT, oL, oV);
+        oV && (oV.textContent = `${cfg.subtitle.bgOpacity}%`);
+
+        oT.addEventListener("fcc-slider-change", (ev) => {
+          const v = ev.detail.value;
+          cfg.subtitle.bgOpacity = v;
+          oV && (oV.textContent = `${v}%`);
+          const rgb = cfg.subtitle.bgColor.match(/\d+/g) || [0, 0, 0];
+          cfg.subtitle.bgColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${v / 100})`;
+          sLib.uS();
+        });
+
+        const fL = {};
+        for (let sz = 16; sz <= 40; sz += 2) fL[sz] = `${sz}px`;
+        const fC = qS(gI, "#font-size-slider");
+        fC.innerHTML = cCS(16, 40, 2, cfg.subtitle.fontSize, fL, "font-size-value");
+        const fV = qS(fC, "#font-size-value"),
+          fT = qS(fC, ".fcc-slider-track"),
+          sBtns = qSA(gI, ".fcc-size-btn");
+        iS(fT, fL, fV);
+
+        const setFontSizeState = (v) => {
+          cfg.subtitle.fontSize = v;
+          fV && (fV.textContent = fL[v] || `${v}px`);
+          sLib.uS();
+          sBtns.forEach((b) => {
+            b.classList.toggle("active", parseFloat(b.dataset.size) === v);
+          });
+        };
+
+        fT.addEventListener("fcc-slider-change", (ev) => {
+          const v = parseFloat(ev.detail.value);
+          setFontSizeState(v);
+        });
+
+        const programmaticFontSize = (v) => {
+          const mi = parseFloat(fT.dataset.min);
+          const ma = parseFloat(fT.dataset.max);
+          const p = ((v - mi) / (ma - mi)) * 100;
+          qS(fT, ".fcc-slider-thumb").style.left = p + "%";
+          qS(fT, ".fcc-slider-fill").style.width = p + "%";
+          fT.dataset.value = v;
+          fT.dispatchEvent(new CustomEvent("fcc-slider-change", { detail: { value: v } }));
+        };
+
+        const currentSize = parseFloat(fT.dataset.value || cfg.subtitle.fontSize);
+        setFontSizeState(currentSize);
+
+        sBtns.forEach((b) => {
+          const bSize = parseFloat(b.dataset.size);
+          b.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            programmaticFontSize(bSize);
+          });
+        });
+
+        const tCI = qS(gI, "#text-color-input"),
+          htCI = qS(gI, "#highlight-text-color-input"),
+          hbCI = qS(gI, "#highlight-bg-color-input"),
+          tCP = qS(gI, "#text-color-preview"),
+          htCP = qS(gI, "#highlight-text-color-preview"),
+          hbCP = qS(gI, "#highlight-bg-color-preview"),
+          openPicker = (input) => {
+            if (!input) return;
+            input.focus();
+            input.dispatchEvent(new MouseEvent("mousedown", { bubbles: !0 }));
+            input.dispatchEvent(new MouseEvent("click", { bubbles: !0 }));
+          };
+
+        tCI.value = cfg.subtitle.textColor;
+        htCI.value = cfg.subtitle.highlightTextColor;
+        hbCI.value = cfg.subtitle.highlightBgColor;
+        tCP && (tCP.style.background = cfg.subtitle.textColor);
+        htCP && (htCP.style.background = cfg.subtitle.highlightTextColor);
+        hbCP && (hbCP.style.background = cfg.subtitle.highlightBgColor);
+        tCP && tCP.addEventListener("click", () => openPicker(tCI));
+        htCP && htCP.addEventListener("click", () => openPicker(htCI));
+        hbCP && hbCP.addEventListener("click", () => openPicker(hbCI));
+
+        const hsRadios = qSA(gI, 'input[name="highlight-style"]');
+        const hbGroup = qS(gI, "#highlight-bg-color-group");
+        const updateHighlightStyleVisibility = () => {
+          const style = cfg.subtitle.highlightStyle;
+          if (hbGroup) {
+            hbGroup.style.display = style === "background" ? "block" : "none";
+          }
+        };
+        updateHighlightStyleVisibility();
+
+        qSA(gI, ".fcc-compact-radio").forEach((r) => {
+          r.addEventListener("click", () => {
+            const i = qS(r, 'input[type="radio"]');
+            if (i && i.name === "highlight-style") {
+              i.checked = !0;
+              cfg.subtitle.highlightStyle = i.value;
+              qSA(gI, 'input[name="highlight-style"]').forEach((r2) =>
+                r2.closest(".fcc-compact-radio").classList.remove("selected")
+              );
+              r.classList.add("selected");
+              updateHighlightStyleVisibility();
+              sLib.uS();
+            }
+          });
+        });
+
+        const iC = () => {
+          if (window.Coloris) {
+            Coloris({
+              el: ".coloris-input",
+              theme: "polaroid",
+              themeMode: "dark",
+              format: "hex",
+              alpha: !1,
+              wrap: !0,
+            });
+            tCI.addEventListener("input", () => {
+              cfg.subtitle.textColor = tCI.value;
+              tCP && (tCP.style.background = tCI.value);
+              sLib.uS();
+            });
+            htCI.addEventListener("input", () => {
+              cfg.subtitle.highlightTextColor = htCI.value;
+              htCP && (htCP.style.background = htCI.value);
+              sLib.uS();
+            });
+            hbCI.addEventListener("input", () => {
+              cfg.subtitle.highlightBgColor = hbCI.value;
+              hbCP && (hbCP.style.background = hbCI.value);
+              sLib.uS();
+            });
+          } else {
+            setTimeout(iC, 100);
+          }
+        };
+        iC();
+
+        qS(gI, "#back-btn").addEventListener("click", (e) => {
+          e.preventDefault();
+          if (tLock.locked) return;
+          sLib.dest();
+          sMC(!0);
+        });
+        qS(gI, "#finish-btn").addEventListener("click", (e) => {
+          e.preventDefault();
+          if (tLock.locked) return;
+          sLib.dest();
           console.log("Configuration saved:", cfg);
           alert("Configuration will be saved! (Not yet implemented)");
         });
+
+        sB && sB.recalculate();
+        aHL();
       }, eLD);
     };
+  sSC2 = () => {
+    const cH = `<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Font Size</label>
+  <p class="fcc-option-desc">Adjust the size of subtitle text.</p>
+  <div class="fcc-slider-container" id="font-size-slider"></div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Quick Size Presets</label>
+  <p class="fcc-option-desc">Choose a preset size or customize with the slider above.</p>
+  <div class="fcc-size-preset">
+    <button type="button" class="fcc-size-btn" data-size="18">Small</button
+    ><button type="button" class="fcc-size-btn" data-size="24">Medium</button
+    ><button type="button" class="fcc-size-btn" data-size="32">Large</button
+    ><button type="button" class="fcc-size-btn" data-size="40">Extra Large</button>
+  </div>
+</div>
+<div class="fcc-button-group fcc-animate-element">
+  <button type="button" class="heroui-button heroui-button-secondary" id="back-btn">
+    <span class="heroui-button-text">Back</span></button
+  ><button type="button" class="heroui-button" id="finish-btn">
+    <span class="heroui-button-text">Finish</span>
+  </button>
+</div>
+`;
+    tTP(cH, "Subtitle Styling");
+    const eLD = 1200 + 3 * 200;
+    setTimeout(() => {
+      if (!sLib.el) {
+        sLib.init("Let learning be the light of your new life");
+      }
+      sLib.uS();
+      sLib.sA(300);
+
+      const fL = {};
+      for (let sz = 16; sz <= 40; sz += 2) fL[sz] = `${sz}px`;
+      const fC = qS(gI, "#font-size-slider");
+      fC.innerHTML = cCS(16, 40, 2, cfg.subtitle.fontSize, fL, "font-size-value");
+      const fV = qS(fC, "#font-size-value"),
+        fT = qS(fC, ".fcc-slider-track"),
+        sBtns = qSA(gI, ".fcc-size-btn");
+      iS(fT, fL, fV);
+
+      const setFontSizeState = (v) => {
+        cfg.subtitle.fontSize = v;
+        fV && (fV.textContent = fL[v] || `${v}px`);
+        sLib.uS();
+        sBtns.forEach((b) => {
+          b.classList.toggle("active", parseFloat(b.dataset.size) === v);
+        });
+      };
+
+      fT.addEventListener("fcc-slider-change", (ev) => {
+        const v = parseFloat(ev.detail.value);
+        setFontSizeState(v);
+      });
+
+      const programmaticFontSize = (v) => {
+        const mi = parseFloat(fT.dataset.min);
+        const ma = parseFloat(fT.dataset.max);
+        const p = ((v - mi) / (ma - mi)) * 100;
+        qS(fT, ".fcc-slider-thumb").style.left = p + "%";
+        qS(fT, ".fcc-slider-fill").style.width = p + "%";
+        fT.dataset.value = v;
+        fT.dispatchEvent(new CustomEvent("fcc-slider-change", { detail: { value: v } }));
+      };
+
+      const currentSize = parseFloat(fT.dataset.value || cfg.subtitle.fontSize);
+      setFontSizeState(currentSize);
+
+      sBtns.forEach((b) => {
+        const bSize = parseFloat(b.dataset.size);
+        b.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          programmaticFontSize(bSize);
+        });
+      });
+
+      const bkBtn = qS(gI, "#back-btn");
+      const fnBtn = qS(gI, "#finish-btn");
+
+      bkBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (tLock.locked) return;
+        sSC1(!0);
+      });
+
+      fnBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (tLock.locked) return;
+        sLib.dest();
+        console.log("Configuration saved:", cfg);
+        alert("Configuration will be saved! (Not yet implemented)");
+      });
+
+      sB && sB.recalculate();
+      aHL();
+    }, eLD);
+  };
   qS(gI, ".heroui-button").addEventListener("click", () => sIC());
 })();
