@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FreeCodeCamp lecture reader
 // @namespace    http://tampermonkey.net/
-// @version      2025-10-12.05
+// @version      2025-10-12.01
 // @description  Adds a configurable lecture reader to replace the videos.
 // @author       Mark Pikaro (Futuraura)
 // @match        https://www.freecodecamp.org/learn/*/lecture-*/*
@@ -1561,106 +1561,5 @@ body:has(.fcc-config-overlay) {
         aHL();
       }, eLD);
     };
-  sSC2 = () => {
-    const cH = `<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Font Size</label>
-  <p class="fcc-option-desc">Adjust the size of subtitle text.</p>
-  <div class="fcc-slider-container" id="font-size-slider"></div>
-</div>
-<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Quick Size Presets</label>
-  <p class="fcc-option-desc">Choose a preset size or customize with the slider above.</p>
-  <div class="fcc-size-preset">
-    <button type="button" class="fcc-size-btn" data-size="18">Small</button
-    ><button type="button" class="fcc-size-btn" data-size="24">Medium</button
-    ><button type="button" class="fcc-size-btn" data-size="32">Large</button
-    ><button type="button" class="fcc-size-btn" data-size="40">Extra Large</button>
-  </div>
-</div>
-<div class="fcc-button-group fcc-animate-element">
-  <button type="button" class="heroui-button heroui-button-secondary" id="back-btn">
-    <span class="heroui-button-text">Back</span></button
-  ><button type="button" class="heroui-button" id="finish-btn">
-    <span class="heroui-button-text">Finish</span>
-  </button>
-</div>
-`;
-    tTP(cH, "Subtitle Styling");
-    const eLD = 1200 + 3 * 200;
-    setTimeout(() => {
-      if (!sLib.el) {
-        sLib.init("Let learning be the light of your new life");
-      }
-      sLib.uS();
-      sLib.sA(300);
-
-      const fL = {};
-      for (let sz = 16; sz <= 40; sz += 2) fL[sz] = `${sz}px`;
-      const fC = qS(gI, "#font-size-slider");
-      fC.innerHTML = cCS(16, 40, 2, cfg.subtitle.fontSize, fL, "font-size-value");
-      const fV = qS(fC, "#font-size-value"),
-        fT = qS(fC, ".fcc-slider-track"),
-        sBtns = qSA(gI, ".fcc-size-btn");
-      iS(fT, fL, fV);
-
-      const setFontSizeState = (v) => {
-        cfg.subtitle.fontSize = v;
-        fV && (fV.textContent = fL[v] || `${v}px`);
-        sLib.uS();
-        sBtns.forEach((b) => {
-          b.classList.toggle("active", parseFloat(b.dataset.size) === v);
-        });
-      };
-
-      fT.addEventListener("fcc-slider-change", (ev) => {
-        const v = parseFloat(ev.detail.value);
-        setFontSizeState(v);
-      });
-
-      const programmaticFontSize = (v) => {
-        const mi = parseFloat(fT.dataset.min);
-        const ma = parseFloat(fT.dataset.max);
-        const p = ((v - mi) / (ma - mi)) * 100;
-        qS(fT, ".fcc-slider-thumb").style.left = p + "%";
-        qS(fT, ".fcc-slider-fill").style.width = p + "%";
-        fT.dataset.value = v;
-        fT.dispatchEvent(new CustomEvent("fcc-slider-change", { detail: { value: v } }));
-      };
-
-      const currentSize = parseFloat(fT.dataset.value || cfg.subtitle.fontSize);
-      setFontSizeState(currentSize);
-
-      sBtns.forEach((b) => {
-        const bSize = parseFloat(b.dataset.size);
-        b.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          programmaticFontSize(bSize);
-        });
-      });
-
-      const bkBtn = qS(gI, "#back-btn");
-      const fnBtn = qS(gI, "#finish-btn");
-
-      bkBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (tLock.locked) return;
-        sSC1(!0);
-      });
-
-      fnBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (tLock.locked) return;
-        sLib.dest();
-        console.log("Configuration saved:", cfg);
-        alert("Configuration will be saved! (Not yet implemented)");
-      });
-
-      sB && sB.recalculate();
-      aHL();
-    }, eLD);
-  };
   qS(gI, ".heroui-button").addEventListener("click", () => sIC());
 })();
