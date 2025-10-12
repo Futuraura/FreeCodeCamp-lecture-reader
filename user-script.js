@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         FreeCodeCamp lecture reader
 // @namespace    http://tampermonkey.net/
-// @version      2025-10-11
+// @version      2025-10-12.05
 // @description  Adds a configurable lecture reader to replace the videos.
 // @author       Mark Pikaro (Futuraura)
 // @match        https://www.freecodecamp.org/learn/*/lecture-*/*
