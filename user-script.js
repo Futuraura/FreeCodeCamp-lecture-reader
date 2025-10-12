@@ -1019,23 +1019,75 @@ body:has(.fcc-config-overlay) {
               nE.forEach((e, i) =>
                 setTimeout(
                   () => e.classList.remove("fcc-slide-out-left", "fcc-slide-out-right"),
-                  i * 200
+                  i * 100
                 )
               ),
             100
           );
         });
+        setTimeout(() => (tLock.locked = !1), sOD + 500);
       }, sOD);
     },
     sIC = (bw = !1) => {
-      const cH =
-        '<div class="fcc-option-group fcc-animate-element"><label class="fcc-option-label">Choose TTS Engine</label><div class="fcc-radio-option" data-value="webspeech"><label class="fcc-radio-label"><input type="radio" name="tts-engine" value="webspeech"><div class="fcc-radio-title">Web Speech API</div></label><p class="fcc-radio-desc">Built-in browser API. Works instantly with no downloads. Lightweight and fast, perfect for quick setup.</p></div><div class="fcc-radio-option" data-value="transformers"><label class="fcc-radio-label"><input type="radio" name="tts-engine" value="transformers"><div class="fcc-radio-title">Transformers.js</div></label><p class="fcc-radio-desc">High-quality AI models running locally in your browser. Offers the best voice quality with advanced neural networks (170-350MB download).</p></div><div class="fcc-radio-option" data-value="piper"><label class="fcc-radio-label"><input type="radio" name="tts-engine" value="piper"><div class="fcc-radio-title">Piper TTS</div></label><p class="fcc-radio-desc">Balanced quality and performance. Fast neural TTS with natural-sounding voices (30-60MB download).</p></div></div><div class="fcc-button-group fcc-animate-element"><button class="heroui-button heroui-button-outline" id="next-btn" disabled><span class="heroui-button-text">Next</span></button></div>';
+      const cH = `<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Choose TTS Engine</label>
+  <div class="fcc-radio-option" data-value="webspeech">
+    <label class="fcc-radio-label"
+      ><input type="radio" name="tts-engine" value="webspeech" ${
+        cfg.ttsEngine === "webspeech" ? "checked" : ""
+      } />
+      <div class="fcc-radio-title">Web Speech API</div></label
+    >
+    <p class="fcc-radio-desc">
+      Built-in browser API. Works instantly with no downloads. Lightweight and fast, perfect for
+      quick setup.
+    </p>
+  </div>
+  <div class="fcc-radio-option" data-value="transformers">
+    <label class="fcc-radio-label"
+      ><input type="radio" name="tts-engine" value="transformers" ${
+        cfg.ttsEngine === "transformers" ? "checked" : ""
+      } />
+      <div class="fcc-radio-title">Transformers.js</div></label
+    >
+    <p class="fcc-radio-desc">
+      High-quality AI models running locally in your browser. Offers the best voice quality with
+      advanced neural networks (170-350MB download).
+    </p>
+  </div>
+  <div class="fcc-radio-option" data-value="piper">
+    <label class="fcc-radio-label"
+      ><input type="radio" name="tts-engine" value="piper" ${
+        cfg.ttsEngine === "piper" ? "checked" : ""
+      } />
+      <div class="fcc-radio-title">Piper TTS</div></label
+    >
+    <p class="fcc-radio-desc">
+      Balanced quality and performance. Fast neural TTS with natural-sounding voices (30-60MB
+      download).
+    </p>
+  </div>
+</div>
+<div class="fcc-button-group fcc-animate-element">
+  <button class="heroui-button ${cfg.ttsEngine ? "" : "heroui-button-outline"}" id="next-btn" ${
+        cfg.ttsEngine ? "" : "disabled"
+      }>
+    <span class="heroui-button-text">Next</span>
+  </button>
+</div>
+`;
       tTP(cH, "Initial Configuration", bw);
-      const eLD = 1200 + 3 * 200;
+      const eLD = 1200 + 3 * 100;
       setTimeout(() => {
         const rO = qSA(gI, ".fcc-radio-option"),
           rI = qSA(gI, 'input[name="tts-engine"]'),
           nB = qS(gI, "#next-btn");
+
+        if (cfg.ttsEngine) {
+          const selectedOp = qS(gI, `.fcc-radio-option[data-value="${cfg.ttsEngine}"]`);
+          selectedOp && selectedOp.classList.add("selected");
+        }
+
         rO.forEach((op, i) => {
           op.addEventListener("click", () => {
             rI[i].checked = !0;
