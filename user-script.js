@@ -131,12 +131,14 @@
         },
         sD = (e) => {
           iD = !0;
-          uS(e.clientX || e.touches[0].clientX);
+          const cX = e.touches && e.touches.length ? e.touches[0].clientX : e.clientX;
+          uS(cX);
           e.preventDefault();
         },
         dr = (e) => {
           if (!iD) return;
-          uS(e.clientX || e.touches[0].clientX);
+          const cX = e.touches && e.touches.length ? e.touches[0].clientX : e.clientX;
+          uS(cX);
           e.preventDefault();
         },
         stD = () => (iD = !1);
