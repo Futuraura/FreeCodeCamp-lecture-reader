@@ -1108,24 +1108,145 @@ body:has(.fcc-config-overlay) {
             nB.classList.remove("heroui-button-outline");
           });
         });
-        nB.addEventListener("click", () => !nB.disabled && sMC());
+        nB.addEventListener("click", () => !nB.disabled && !tLock.locked && sMC());
       }, eLD);
     },
     sMC = () => {
       let oH = "";
       if (cfg.ttsEngine === "webspeech") {
-        oH =
-          '<div class="fcc-option-group fcc-animate-element"><label class="fcc-option-label">Voice</label><p class="fcc-option-desc">Select a voice from your system\'s available voices.</p><div class="fcc-radio-group"><div class="fcc-compact-radio selected" data-value="default"><label><input type="radio" name="voice" value="default" checked><span class="fcc-radio-title">Default Voice</span></label></div><div class="fcc-compact-radio" data-value="female"><label><input type="radio" name="voice" value="female"><span class="fcc-radio-title">Female Voice</span></label></div><div class="fcc-compact-radio" data-value="male"><label><input type="radio" name="voice" value="male"><span class="fcc-radio-title">Male Voice</span></label></div></div></div><div class="fcc-option-group fcc-animate-element"><label class="fcc-option-label">Speech Rate</label><p class="fcc-option-desc">Adjust how fast the text is read.</p><div class="fcc-slider-container" id="rate-slider-container"></div></div>';
+        oH = `<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Voice</label>
+  <p class="fcc-option-desc">Select a voice from your system\'s available voices.</p>
+  <div class="fcc-radio-group">
+    <div class="fcc-compact-radio selected" data-value="default">
+      <label
+        ><input type="radio" name="voice" value="default" checked /><span class="fcc-radio-title"
+          >Default Voice</span
+        ></label
+      >
+    </div>
+    <div class="fcc-compact-radio" data-value="female">
+      <label
+        ><input type="radio" name="voice" value="female" /><span class="fcc-radio-title"
+          >Female Voice</span
+        ></label
+      >
+    </div>
+    <div class="fcc-compact-radio" data-value="male">
+      <label
+        ><input type="radio" name="voice" value="male" /><span class="fcc-radio-title"
+          >Male Voice</span
+        ></label
+      >
+    </div>
+  </div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Speech Rate</label>
+  <p class="fcc-option-desc">Adjust how fast the text is read.</p>
+  <div class="fcc-slider-container" id="rate-slider-container"></div>
+</div>
+`;
       } else if (cfg.ttsEngine === "transformers") {
-        oH =
-          '<div class="fcc-option-group fcc-animate-element"><label class="fcc-option-label">Model</label><p class="fcc-option-desc">Choose the AI model to use. Larger models offer better quality but require more resources.</p><div class="fcc-radio-group"><div class="fcc-compact-radio selected" data-value="speecht5"><label><input type="radio" name="model" value="speecht5" checked><span class="fcc-radio-title">SpeechT5 - Balanced (170MB)</span></label></div><div class="fcc-compact-radio" data-value="vits"><label><input type="radio" name="model" value="vits"><span class="fcc-radio-title">VITS - High Quality (350MB)</span></label></div></div></div><div class="fcc-option-group fcc-animate-element"><label class="fcc-option-label">Voice Type</label><p class="fcc-option-desc">Select the voice characteristics.</p><div class="fcc-radio-group"><div class="fcc-compact-radio selected" data-value="neutral"><label><input type="radio" name="voice-type" value="neutral" checked><span class="fcc-radio-title">Neutral</span></label></div><div class="fcc-compact-radio" data-value="female"><label><input type="radio" name="voice-type" value="female"><span class="fcc-radio-title">Female</span></label></div><div class="fcc-compact-radio" data-value="male"><label><input type="radio" name="voice-type" value="male"><span class="fcc-radio-title">Male</span></label></div></div></div>';
+        oH = `<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Model</label>
+  <p class="fcc-option-desc">
+    Choose the AI model to use. Larger models offer better quality but require more resources.
+  </p>
+  <div class="fcc-radio-group">
+    <div class="fcc-compact-radio selected" data-value="speecht5">
+      <label
+        ><input type="radio" name="model" value="speecht5" checked /><span class="fcc-radio-title"
+          >SpeechT5 - Balanced (170MB)</span
+        ></label
+      >
+    </div>
+    <div class="fcc-compact-radio" data-value="vits">
+      <label
+        ><input type="radio" name="model" value="vits" /><span class="fcc-radio-title"
+          >VITS - High Quality (350MB)</span
+        ></label
+      >
+    </div>
+  </div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Voice Type</label>
+  <p class="fcc-option-desc">Select the voice characteristics.</p>
+  <div class="fcc-radio-group">
+    <div class="fcc-compact-radio selected" data-value="neutral">
+      <label
+        ><input type="radio" name="voice-type" value="neutral" checked /><span
+          class="fcc-radio-title"
+          >Neutral</span
+        ></label
+      >
+    </div>
+    <div class="fcc-compact-radio" data-value="female">
+      <label
+        ><input type="radio" name="voice-type" value="female" /><span class="fcc-radio-title"
+          >Female</span
+        ></label
+      >
+    </div>
+    <div class="fcc-compact-radio" data-value="male">
+      <label
+        ><input type="radio" name="voice-type" value="male" /><span class="fcc-radio-title"
+          >Male</span
+        ></label
+      >
+    </div>
+  </div>
+</div>
+`;
       } else if (cfg.ttsEngine === "piper") {
-        oH =
-          '<div class="fcc-option-group fcc-animate-element"><label class="fcc-option-label">Voice Model</label><p class="fcc-option-desc">Choose a Piper voice model. Quality affects file size and processing time.</p><div class="fcc-radio-group"><div class="fcc-compact-radio selected" data-value="en_US-lessac-medium"><label><input type="radio" name="piper-voice" value="en_US-lessac-medium" checked><span class="fcc-radio-title">US English - Lessac (Medium, 30MB)</span></label></div><div class="fcc-compact-radio" data-value="en_US-lessac-high"><label><input type="radio" name="piper-voice" value="en_US-lessac-high"><span class="fcc-radio-title">US English - Lessac (High, 60MB)</span></label></div><div class="fcc-compact-radio" data-value="en_GB-alan-medium"><label><input type="radio" name="piper-voice" value="en_GB-alan-medium"><span class="fcc-radio-title">British English - Alan (Medium, 30MB)</span></label></div></div></div><div class="fcc-option-group fcc-animate-element"><label class="fcc-option-label">Speaking Speed</label><p class="fcc-option-desc">Adjust the speed of speech generation.</p><div class="fcc-slider-container" id="speed-slider-container"></div></div>';
+        oH = `<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Voice Model</label>
+  <p class="fcc-option-desc">
+    Choose a Piper voice model. Quality affects file size and processing time.
+  </p>
+  <div class="fcc-radio-group">
+    <div class="fcc-compact-radio selected" data-value="en_US-lessac-medium">
+      <label
+        ><input type="radio" name="piper-voice" value="en_US-lessac-medium" checked /><span
+          class="fcc-radio-title"
+          >US English - Lessac (Medium, 30MB)</span
+        ></label
+      >
+    </div>
+    <div class="fcc-compact-radio" data-value="en_US-lessac-high">
+      <label
+        ><input type="radio" name="piper-voice" value="en_US-lessac-high" /><span
+          class="fcc-radio-title"
+          >US English - Lessac (High, 60MB)</span
+        ></label
+      >
+    </div>
+    <div class="fcc-compact-radio" data-value="en_GB-alan-medium">
+      <label
+        ><input type="radio" name="piper-voice" value="en_GB-alan-medium" /><span
+          class="fcc-radio-title"
+          >British English - Alan (Medium, 30MB)</span
+        ></label
+      >
+    </div>
+  </div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Speaking Speed</label>
+  <p class="fcc-option-desc">Adjust the speed of speech generation.</p>
+  <div class="fcc-slider-container" id="speed-slider-container"></div>
+</div>
+`;
       }
       const cH =
         oH +
-        '<div class="fcc-button-group fcc-animate-element"><button class="heroui-button heroui-button-secondary" id="back-btn"><span class="heroui-button-text">Back</span></button><button class="heroui-button" id="finish-btn"><span class="heroui-button-text">Finish</span></button></div>';
+        `<div class="fcc-button-group fcc-animate-element">
+  <button class="heroui-button heroui-button-secondary" id="back-btn">
+    <span class="heroui-button-text">Back</span></button
+  ><button class="heroui-button" id="next-btn"><span class="heroui-button-text">Next</span></button>
+</div>
+`;
       tTP(cH, "Model Configuration");
       const eLD = 1200 + 4 * 200;
       setTimeout(() => {
