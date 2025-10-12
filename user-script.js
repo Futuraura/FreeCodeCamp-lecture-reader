@@ -1461,50 +1461,7 @@ body:has(.fcc-config-overlay) {
           sLib.uS();
         });
 
-        const fL = {};
-        for (let sz = 16; sz <= 40; sz += 2) fL[sz] = `${sz}px`;
-        const fC = qS(gI, "#font-size-slider");
-        fC.innerHTML = cCS(16, 40, 2, cfg.subtitle.fontSize, fL, "font-size-value");
-        const fV = qS(fC, "#font-size-value"),
-          fT = qS(fC, ".fcc-slider-track"),
-          sBtns = qSA(gI, ".fcc-size-btn");
-        iS(fT, fL, fV);
-
-        const setFontSizeState = (v) => {
-          cfg.subtitle.fontSize = v;
-          fV && (fV.textContent = fL[v] || `${v}px`);
-          sLib.uS();
-          sBtns.forEach((b) => {
-            b.classList.toggle("active", parseFloat(b.dataset.size) === v);
-          });
-        };
-
-        fT.addEventListener("fcc-slider-change", (ev) => {
-          const v = parseFloat(ev.detail.value);
-          setFontSizeState(v);
-        });
-
-        const programmaticFontSize = (v) => {
-          const mi = parseFloat(fT.dataset.min);
-          const ma = parseFloat(fT.dataset.max);
-          const p = ((v - mi) / (ma - mi)) * 100;
-          qS(fT, ".fcc-slider-thumb").style.left = p + "%";
-          qS(fT, ".fcc-slider-fill").style.width = p + "%";
-          fT.dataset.value = v;
-          fT.dispatchEvent(new CustomEvent("fcc-slider-change", { detail: { value: v } }));
-        };
-
-        const currentSize = parseFloat(fT.dataset.value || cfg.subtitle.fontSize);
-        setFontSizeState(currentSize);
-
-        sBtns.forEach((b) => {
-          const bSize = parseFloat(b.dataset.size);
-          b.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            programmaticFontSize(bSize);
-          });
-        });
+        iFSC("#font-size-slider", ".fcc-size-btn");
 
         const tCI = qS(gI, "#text-color-input"),
           htCI = qS(gI, "#highlight-text-color-input"),
