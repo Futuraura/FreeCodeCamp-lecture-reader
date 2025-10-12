@@ -969,15 +969,17 @@ body:has(.fcc-config-overlay) {
       d.addEventListener("touchend", stD);
     },
     tTP = (nH, nT = null, bw = !1) => {
+      if (tLock.locked) return;
+      tLock.locked = !0;
       const cE2 = Array.from(gI.children);
       cE2.forEach((e, i) => {
         e.classList.add("fcc-animate-element");
         setTimeout(
           () => e.classList.add(bw ? "fcc-slide-out-left" : "fcc-slide-out-right"),
-          i * 200
+          i * 100
         );
       });
-      const sOD = cE2.length * 200 + 1e3;
+      const sOD = cE2.length * 100 + 1e3;
       setTimeout(() => {
         gI.innerHTML = "";
         const nE = [];
