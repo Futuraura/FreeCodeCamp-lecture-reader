@@ -2034,27 +2034,37 @@ body:has(.fcc-config-overlay) {
     sMC = () => {
       let oH = "";
       if (cfg.ttsEngine === "webspeech") {
+        const voicePref = cfg.webspeech?.voice || "default";
+        const ratePref = cfg.webspeech?.rate ?? 1;
         oH = `<div class="fcc-option-group fcc-animate-element">
   <label class="fcc-option-label">Voice</label>
   <p class="fcc-option-desc">Select a voice from your system\'s available voices.</p>
   <div class="fcc-radio-group">
-    <div class="fcc-compact-radio selected" data-value="default">
+    <div class="fcc-compact-radio${
+      voicePref === "default" ? " selected" : ""
+    }" data-value="default">
       <label
-        ><input type="radio" name="voice" value="default" checked /><span class="fcc-radio-title"
+        ><input type="radio" name="voice" value="default" ${
+          voicePref === "default" ? "checked" : ""
+        } /><span class="fcc-radio-title"
           >Default Voice</span
         ></label
       >
     </div>
-    <div class="fcc-compact-radio" data-value="female">
+    <div class="fcc-compact-radio${voicePref === "female" ? " selected" : ""}" data-value="female">
       <label
-        ><input type="radio" name="voice" value="female" /><span class="fcc-radio-title"
+        ><input type="radio" name="voice" value="female" ${
+          voicePref === "female" ? "checked" : ""
+        } /><span class="fcc-radio-title"
           >Female Voice</span
         ></label
       >
     </div>
-    <div class="fcc-compact-radio" data-value="male">
+    <div class="fcc-compact-radio${voicePref === "male" ? " selected" : ""}" data-value="male">
       <label
-        ><input type="radio" name="voice" value="male" /><span class="fcc-radio-title"
+        ><input type="radio" name="voice" value="male" ${
+          voicePref === "male" ? "checked" : ""
+        } /><span class="fcc-radio-title"
           >Male Voice</span
         ></label
       >
@@ -2192,8 +2202,13 @@ body:has(.fcc-config-overlay) {
               2: "2x - Very Fast",
             },
             rC = qS(gI, "#rate-slider-container");
-          rC.innerHTML = cCS(0.5, 2, 0.25, 1, rL, "rate-value");
-          iS(qS(rC, ".fcc-slider-track"), rL, qS(rC, "#rate-value"));
+          rC.innerHTML = cCS(0.5, 2, 0.25, ratePref, rL, "rate-value");
+          const rateTrack = qS(rC, ".fcc-slider-track");
+          iS(rateTrack, rL, qS(rC, "#rate-value"));
+          rateTrack.addEventListener("fcc-slider-change", (ev) => {
+            cfg.webspeech = cfg.webspeech || { ...dCfg.webspeech };
+            cfg.webspeech.rate = parseFloat(ev.detail.value);
+          });
         } else if (cfg.ttsEngine === "piper") {
           const sL = {
               0.8: "Slow",
@@ -2205,6 +2220,16 @@ body:has(.fcc-config-overlay) {
             sC = qS(gI, "#speed-slider-container");
           sC.innerHTML = cCS(0.8, 1.2, 0.1, 1, sL, "speed-value");
           iS(qS(sC, ".fcc-slider-track"), sL, qS(sC, "#speed-value"));
+        }
+        if (cfg.ttsEngine === "webspeech") {
+          qSA(gI, 'input[name="voice"]').forEach((input) => {
+            input.addEventListener("change", (ev) => {
+              if (ev.target.checked) {
+                cfg.webspeech = cfg.webspeech || { ...dCfg.webspeech };
+                cfg.webspeech.voice = ev.target.value;
+              }
+            });
+          });
         }
         qS(gI, "#back-btn").addEventListener("click", () => !tLock.locked && sIC(!0));
         qS(gI, "#next-btn").addEventListener("click", () => !tLock.locked && sSC1());
