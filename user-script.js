@@ -1020,13 +1020,15 @@ body:has(.fcc-config-overlay) {
     <div class="g5"></div>
   </div>
 </div>
-<div class="fcc-glass-container">
-  <div class="fcc-glass-content-wrapper" data-simplebar>
-    <div class="fcc-glass-content-inner">
-      <h1 class="fcc-welcome-text fcc-animate-element">Welcome to Lectify</h1>
-      <button class="heroui-button fcc-initial">
-        <span class="heroui-button-text">Start</span>
-      </button>
+<div class="fcc-content-wrapper">
+  <div class="fcc-glass-container">
+    <div class="fcc-glass-content-wrapper" data-simplebar>
+      <div class="fcc-glass-content-inner">
+        <h1 class="fcc-welcome-text fcc-animate-element">Welcome to Lectify</h1>
+        <button class="heroui-button fcc-initial">
+          <span class="heroui-button-text">Start</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
