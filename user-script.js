@@ -1543,34 +1543,94 @@ body:has(.fcc-config-overlay) {
         fontSize: 24,
       },
     },
+    applyCfgDefaults = (incoming = {}) => {
+      const merged = {
+        ...JSON.parse(JSON.stringify(dCfg)),
+        ...incoming,
+      };
+      merged.subtitle = {
+        ...dCfg.subtitle,
+        ...(incoming.subtitle || {}),
+      };
+      merged.webspeech = {
+        ...dCfg.webspeech,
+        ...(incoming.webspeech || {}),
+      };
+      return merged;
+    },
+    cfg = applyCfgDefaults(),
     tLock = { locked: !1 },
     sLib = {
       el: null,
+      ctn: null,
       words: [],
+      chunks: [],
       cIdx: -1,
+      chunkIdx: -1,
       aId: null,
       hBg: null,
-      init(txt) {
+      parentEl: null,
+      init(txt, parent) {
+        if (parent) this.parentEl = parent;
         if (!this.el) {
           const pv = cE("div");
           pv.className = "fcc-subtitle-preview";
           pv.innerHTML = `<div class="fcc-subtitle-container"><p class="fcc-subtitle-text"></p></div>`;
-          b.appendChild(pv);
+          (this.parentEl || b).appendChild(pv);
           this.el = qS(pv, ".fcc-subtitle-text");
           this.ctn = qS(pv, ".fcc-subtitle-container");
-          this.mD(this.ctn);
+          if (!this.parentEl) this.mD(this.ctn);
           if (cfg.subtitle.highlightStyle === "background") {
             this.hBg = cE("div");
             this.hBg.className = "fcc-subtitle-highlight-bg";
             this.el.insertBefore(this.hBg, this.el.firstChild);
           }
         }
-        this.words = txt.split(" ");
+        if (txt) {
+          // Split into chunks (sentences or ~15 words)
+          const sentences = txt.match(/[^.!?]+[.!?]+/g) || [txt];
+          this.chunks = sentences.map((s) => s.trim()).filter((s) => s.length > 0);
+          this.chunkIdx = -1;
+          this.words = [];
+          this.el.innerHTML = "";
+          this.cIdx = -1;
+          if (this.chunks.length > 0) {
+            this.showChunk(this.chunks[0]);
+            this.chunkIdx = 0;
+            this.uS();
+          }
+        }
+      },
+      showChunk(chunkText) {
+        const safeText = chunkText || "";
+        this.words = safeText.split(/\s+/).filter((w) => w.length > 0);
         this.el.innerHTML = this.words.map((w) => `<span>${w}</span>`).join(" ");
         if (this.hBg && cfg.subtitle.highlightStyle === "background") {
           this.el.insertBefore(this.hBg, this.el.firstChild);
         }
         this.cIdx = -1;
+      },
+      highlightWord(wordIdx) {
+        if (!this.el) return;
+        const spans = qSA(this.el, "span");
+        spans.forEach((span, idx) => {
+          span.classList.toggle("highlighted", idx === wordIdx);
+        });
+        this.cIdx = wordIdx;
+        this.uS();
+      },
+      clearHighlight() {
+        if (!this.el) return;
+        const spans = qSA(this.el, "span");
+        spans.forEach((span) => {
+          span.classList.remove("highlighted");
+          span.style.color = "";
+        });
+        if (this.hBg) {
+          this.hBg.style.opacity = "0";
+        }
+        this.cIdx = -1;
+        this.uS();
       },
       mD(e) {
         let x = 0,
@@ -1706,8 +1766,11 @@ body:has(.fcc-config-overlay) {
         this.el = null;
         this.ctn = null;
         this.hBg = null;
+        this.parentEl = null;
         this.words = [];
+        this.chunks = [];
         this.cIdx = -1;
+        this.chunkIdx = -1;
       },
     },
     cCS = (mi, ma, st, dV, lb, vI) => {
