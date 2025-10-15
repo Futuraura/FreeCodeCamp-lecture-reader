@@ -2452,13 +2452,87 @@ body:has(.fcc-config-overlay) {
           e.preventDefault();
           if (tLock.locked) return;
           sLib.dest();
-          console.log("Configuration saved:", cfg);
-          alert("Configuration will be saved! (Not yet implemented)");
+          sC2LS(cfg);
         });
 
         sB && sB.recalculate();
         aHL();
       }, eLD);
     };
-  qS(gI, ".heroui-button").addEventListener("click", () => sIC());
+
+  if (savedCfg) {
+    const restoredCfg = applyCfgDefaults(JSON.parse(savedCfg));
+    o.style.display = "none";
+
+    // Wait for page to load fully
+    const waitForContent = setInterval(() => {
+      const cS = qS("#content-start");
+      const dS = qS("#description");
+      if (cS && dS) {
+        clearInterval(waitForContent);
+        sRTU(restoredCfg);
+      }
+    }, 100);
+  } else {
+    qS(gI, ".heroui-button").addEventListener("click", () => sIC());
+  }
+
+  function sRTU(cfg) {
+    const cS = qS("#content-start");
+    const dS = qS("#description");
+    if (!cS || !dS) {
+      console.error("Could not find #content-start or #description");
+      return;
+    }
+    const title = cS.textContent.trim();
+    const cD = [];
+    const preBlocks = [];
+    Array.from(dS.childNodes).forEach((node) => {
+      if (node.nodeType === 1 && node.tagName === "PRE") {
+        cD.push({
+          type: "pre",
+          index: preBlocks.length,
+          marker: `[CODE_BLOCK_${preBlocks.length}]`,
+        });
+        preBlocks.push(node.cloneNode(true));
+      } else if (node.nodeType === 3) {
+        const txt = node.textContent.trim();
+        if (txt) cD.push({ type: "text", content: txt });
+      } else if (node.nodeType === 1) {
+        const txt = node.textContent.trim();
+        if (txt) cD.push({ type: "text", content: txt });
+      }
+    });
+    const fullText = cD
+      .map((item) => (item.type === "text" ? item.content : item.marker || ""))
+      .join(" ");
+
+    const cp = cE("div");
+    cp.className = "fcc-compact-player";
+    cp.innerHTML = `
+<div class="fcc-gradient-bg">
+  <div class="fcc-gradients-container">
+    <div class="g1"></div>
+    <div class="g2"></div>
+    <div class="g3"></div>
+    <div class="g4"></div>
+    <div class="g5"></div>
+  </div>
+  <div class="fcc-content-wrapper">
+    <button class="fcc-next-btn">
+      <span class="fcc-next-btn-text">Play</span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>
+      </svg>
+    </button>
+  </div>
+</div>
+    `;
+    b.appendChild(cp);
+
+    qS(cp, ".fcc-next-btn").onclick = () => {
+      cp.classList.add("fcc-fullscreen");
+      setTimeout(() => sTTS(cfg, fullText, cD, preBlocks, cp), 500);
+    };
+  }
 })();
