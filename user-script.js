@@ -10,14 +10,13 @@
 // ==/UserScript==
 
 (function () {
-  if (localStorage.getItem("freecodecampLectureReader")) return;
+  const savedCfg = localStorage.getItem("freecodecampLectureReader");
   const d = document,
     h = d.head,
     b = d.body,
     cE = (t) => d.createElement(t),
-    qS = (e, s) => e.querySelector(s),
-    qSA = (e, s) => e.querySelectorAll(s);
-  b.style.overflow = "hidden";
+    qS = (e, s) => (s ? e.querySelector(s) : d.querySelector(e)),
+    qSA = (e, s) => (s ? e.querySelectorAll(s) : d.querySelectorAll(e));
   const L = (s, u) => {
       const e = cE(s == "l" ? "link" : "script");
       s == "l" ? ((e.rel = "stylesheet"), (e.href = u)) : (e.src = u);
