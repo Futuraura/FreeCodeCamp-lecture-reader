@@ -1,196 +1,197 @@
-# Copilot Instructions: FreeCodeCamp Lecture Reader
+# Copilot Instructions: FreeCodeCamp Lecture Reader (Lectify)
 
 ## Project Overview
 
-This is a **Tampermonkey/Greasemonkey userscript** that adds a configurable Text-to-Speech (TTS) lecture reader to FreeCodeCamp's lecture pages. The script replaces video content with an accessible reading experience featuring a sophisticated UI built with vanilla JavaScript.
+A **Tampermonkey userscript** that adds text-to-speech lecture reading to FreeCodeCamp courses. Recently refactored from a 2,539-line monolith (`user-script.js`) into a modular ES6 architecture using **esbuild** to bundle into a single distributable userscript.
 
-**Target Environment**: Browser userscript (runs in user's browser via Tampermonkey/Greasemonkey)  
-**License**: AGPL-3.0 (network use requires source disclosure)  
-**Match Pattern**: `https://www.freecodecamp.org/learn/*/lecture-*/*`
+**Core functionality**: TTS playback with synchronized subtitle highlighting, code block display, and interactive configuration wizard.
 
-## Architecture & Code Organization
+## Architecture
 
-### Single-File Architecture
+### Modular Design Pattern
 
-All code lives in `user-script.js` - this is intentional for userscript deployment:
+The codebase follows a **single-responsibility module** pattern where `src/lectify-main.js` orchestrates imports from specialized modules. The build system (`build.js`) uses esbuild to bundle everything into `dist/userscript.js` with Tampermonkey headers auto-injected.
 
-- **Userscript metadata** (lines 1-11): Tampermonkey directives defining name, version, match patterns, and grants
-- **Self-executing anonymous function**: Wraps all logic to avoid global scope pollution
-- **External CDN dependencies**: GSAP (animations), SimpleBar (scrollbars) loaded dynamically via `L()` function
-- **Inline CSS**: ~5KB of styles injected via `<style>` tag for the configuration overlay UI
+**Critical**: All modules use ES6 `import/export`. Never use CommonJS (`require`). The bundler converts this to an IIFE for browser compatibility.
 
-### Key Code Patterns
+### Module Structure
 
-**Variable Naming Convention**: Extreme abbreviation for minification preparation
-
-- `d` = document, `h` = document.head, `b` = document.body
-- `cE` = createElement, `qS` = querySelector, `qSA` = querySelectorAll
-- `gC` = glass container, `gI` = glass content inner, `sB` = SimpleBar instance
-- When adding features, maintain this pattern (e.g., `nB` for "next button", `wT` for "welcome text")
-
-**DOM Manipulation Pattern**:
-
-```javascript
-const elem = cE("div"); // Create
-elem.className = "fcc-custom"; // Configure
-elem.innerHTML = "..."; // Set content
-parent.appendChild(elem); // Mount
+```
+src/
+├── lectify-main.js          # Entry point - orchestrates app flow
+├── config/
+│   └── lectify-settings.js  # localStorage persistence, defaultConfig
+├── utils/
+│   ├── dom.js               # DOM shortcuts: cE, qS, qSA, L (library loader)
+│   └── contentParser.js     # FreeCodeCamp page scraping, waitForContent
+├── styles/
+│   └── stylesInjector.js    # CSS injection (glass morphism, gradients)
+├── tts/
+│   └── engine.js            # Web Speech API, chunk-based playback
+└── ui/
+    ├── wizard.js            # Multi-step config (transitionToPage, showInitialConfig)
+    ├── components.js        # Reusable controls (createSlider, initFontSizeControl)
+    └── subtitles.js         # SubtitleLibrary class - GSAP animations, word highlighting
 ```
 
-**CDN Loading Pattern** (lines 24-27):
+**Key insight**: Original 2,539-line file mapping documented in `MODULAR-BREAKDOWN.md`. Reference this when tracking features from `user-script.js` to new modules.
 
-```javascript
-const L = (s, u) => {
-  const e = cE(s == "l" ? "link" : "script");
-  s == "l" ? ((e.rel = "stylesheet"), (e.href = u)) : (e.src = u);
-  h.appendChild(e);
-  return e;
-};
+## Build & Development Workflow
+
+### Commands
+
+```bash
+npm run build       # One-time build → dist/userscript.js
+npm run dev         # Watch mode for rapid iteration
 ```
 
-- Returns element for `.onload` event handling
-- All external dependencies must use this pattern
+**Build configuration**: Edit `build.js` to change entry points. Currently uses `configs.lectify` (see line 16-26). To switch examples, modify `selectedEntry` variable.
 
-### UI State Management
+### Testing Cycle
 
-**Configuration Flow**: Multi-step wizard using DOM replacement
+1. Edit modules in `src/`
+2. Run `npm run build`
+3. Open Tampermonkey → paste `dist/userscript.js`
+4. Visit `https://www.freecodecamp.org/learn/*/lecture-*/*`
 
-1. **Welcome screen** → Start button
-2. **Engine selection** → Radio options (webspeech/transformers/piper)
-3. **Model configuration** → Engine-specific settings
-4. **Completion** → Save config (not yet implemented)
+**No hot-reload**: Userscripts require manual browser refresh after rebuild.
 
-**Transition System** (`tTP` function, lines 179-223):
+## Code Conventions
 
-- Slides out old content (left/right based on `bw` parameter)
-- Replaces DOM content
-- Dynamically resizes glass container based on new content
-- Slides in new content with staggered animations (200ms delay per element)
-- **Critical**: Always add `fcc-animate-element` class to animated elements
+### Naming Patterns (Inherited from Original)
 
-**Animation Dependencies**:
+- **Extreme abbreviations** for DOM utilities: `cE` (createElement), `qS` (querySelector), `qSA` (querySelectorAll), `L` (load external library)
+- **Short variable names** in original: `d` (document), `b` (body), `h` (head), `gS` (GSAP script), `sC` (SimpleBar CSS)
+- **Function abbreviations**: `tTP` (transitionToPage), `sIC` (showInitialConfig), `sMC` (showModelConfig), `sTTS` (startTTS)
 
-- GSAP for custom cursor tracking (lines 144-163)
-- CSS transitions for UI state changes (defined in inline `<style>`)
-- `requestAnimationFrame` for layout measurements before animations
+**When refactoring**: Preserve these patterns for consistency with the original 2,539-line file. The project intentionally uses terse naming for userscript size optimization (though esbuild can minify).
 
-### TTS Engine Architecture (Not Yet Implemented)
-
-The configuration saves to `cfg` object (line 169) with structure:
+### Module Export Style
 
 ```javascript
-cfg = {
-  ttsEngine: "webspeech" | "transformers" | "piper",
-  // Additional properties based on engine choice
-};
+// ✅ Correct - Named exports for clarity
+export function startTTS(config, fullText, ...) { ... }
+export const defaultConfig = { ... };
+
+// ❌ Avoid - Default exports (harder to trace in large codebase)
+export default { startTTS, defaultConfig };
 ```
 
-**Engine-specific configs**:
+### External Dependencies
 
-- **Web Speech API**: voice selection (default/female/male), speech rate slider (0.5x-2x)
-- **Transformers.js**: model selection (speecht5/vits), voice type (neutral/female/male)
-- **Piper TTS**: voice model (en_US-lessac-medium/high, en_GB-alan-medium), speed slider (0.8-1.2)
+Loaded via CDN using the `L()` utility from `dom.js`:
+
+```javascript
+// From lectify-main.js
+import { L } from "./utils/dom.js";
+const gS = L("s", externalLibraries.gsap); // 's' = script
+const sC = L("l", externalLibraries.simplebar.css); // 'l' = link
+```
+
+**Available libraries** (see `config/lectify-settings.js`):
+
+- **GSAP**: Subtitle animations, page transitions
+- **SimpleBar**: Custom scrollbars in config wizard
+- **Coloris**: Color picker for subtitle styling
+- **Iconify** (optional): 200k+ icons - see `LIBRARIES.md` for integration guide
+
+**NPM dependencies** are bundled (HeroUI React components available but not yet integrated).
 
 ## Critical Implementation Details
 
-### localStorage Guard (line 14)
+### TTS Engine (`tts/engine.js`)
 
-```javascript
-if (localStorage.getItem("freecodecampLectureReader")) return;
-```
+**Chunk-based playback**: Text split into sentence chunks, each played via `speechSynthesis.speak()`. Uses `boundary` events for word highlighting but has **fallback timing** when browser support is poor (line 200-250 in engine.js).
 
-**Purpose**: Prevents script from running after initial configuration. Remove this check when debugging.
+**Code block handling**: When lecture content contains code snippets, playback pauses to display code, then resumes. See `showCodeBlock()` logic in `startTTS()`.
 
-### Glass Morphism Container Sizing (lines 103-118, 187-201)
+**Promises for async flow**: Each chunk returns a Promise that resolves on `end` event. Chain with `.then()` for sequential playback.
 
-Container dimensions are **dynamically calculated** based on content:
+### SubtitleLibrary (`ui/subtitles.js`)
 
-1. Measure content bounding boxes after DOM insertion
-2. Calculate with padding (96px) and gaps (32px between elements)
-3. Animate `width` and `height` via CSS transitions
-4. Recalculate SimpleBar scrollable area after resize
+**GSAP dependency**: All animations use `gsap.to()`. Never use CSS transitions for subtitle effects.
 
-**When adding new screens**: Follow this pattern or container will be incorrectly sized.
+**Highlight modes**:
 
-### Custom Cursor System (lines 144-163)
+- `text`: Changes word color (default gold `#ffd700`)
+- `background`: Adds background behind word
 
-- Desktop only (`min-width: 768px` media query)
-- Two circles: big (40px) scales on hover, small (10px) tracks precisely
-- GSAP handles smooth tracking with different easing for each ball
-- All interactive elements must call `aHL()` to bind hover handlers
+**Word indexing**: Text split into words with `buildWordMap()`. Highlighting uses word indices, not character offsets.
 
-### Slider Component (lines 170-178, 224-262)
+### Configuration Wizard (`ui/wizard.js`)
 
-Reusable slider with custom labels via `cCS()` and `iS()`:
+**Page transitions**: `transitionToPage()` slides content left/right with staggered element animations (100ms delay per element). Uses `transitionLock` to prevent double-clicks.
 
-```javascript
-const labels = { 0.5: "Slow", 1: "Normal", 1.5: "Fast" };
-container.innerHTML = cCS(min, max, step, defaultValue, labels, valueElementId);
-iS(querySelector(".fcc-slider-track"), labels, valueElement);
-```
+**SimpleBar integration**: Each page recalculates scrollbar via `simpleBar.recalculate()` after DOM updates.
 
-- `cCS` = create slider HTML with initial positioning
-- `iS` = initialize event handlers (mouse + touch support)
-- Values snap to step increments
+**Config flow**: Initial → Model Selection → Subtitle Appearance → Save → Start Player
 
-## Development Workflow
+### Content Parser (`utils/contentParser.js`)
 
-### Testing the Userscript
+**FreeCodeCamp-specific selectors**: Targets `.fcc-content-wrapper` and `.lecture-content`. Use `waitForElement()` utility to handle dynamic page loading.
 
-1. Install Tampermonkey browser extension
-2. Create new script and paste `user-script.js` content
-3. Navigate to any FreeCodeCamp lecture URL matching the pattern
-4. Clear localStorage: `localStorage.removeItem("freecodecampLectureReader")`
-5. Refresh page to re-trigger initialization
+**Code block extraction**: Finds `<pre>` tags, replaces with placeholders in text, stores separately for TTS timing.
 
-### External Dependencies (CDN)
+## Common Tasks
 
-- **GSAP 3.12.2**: Animation library for cursor tracking
-- **SimpleBar**: Custom scrollbar styling (CSS + JS)
-- **Google Fonts**: Space Grotesk font family
+### Adding a New UI Control
 
-**Do not bundle or self-host** - userscripts must load from public CDNs.
+1. Create component function in `ui/components.js`:
+   ```javascript
+   export function createMyControl(options) { ... }
+   ```
+2. Import in `ui/wizard.js`:
+   ```javascript
+   import { createMyControl } from "./components.js";
+   ```
+3. Call within wizard page HTML builder
+4. Run `npm run build`
 
-### Debugging Tips
+### Adding a New TTS Engine
 
-- Check browser console for CDN loading errors
-- Verify `@match` pattern in Tampermonkey editor
-- Use `@grant none` - script doesn't require special permissions
-- Test responsive behavior at 768px breakpoint (desktop cursor threshold)
+1. Edit `tts/engine.js` → add new `case` in engine selection
+2. Update `config/lectify-settings.js` → add to `defaultConfig`
+3. Create new wizard step in `ui/wizard.js` for engine-specific settings
+4. Test with `npm run build` and manual browser check
 
-## Code Style Guidelines
+### Debugging TTS Playback Issues
 
-1. **Minification-ready**: Use single-letter variables for common DOM operations
-2. **No semicolons after function declarations** (but yes for statements)
-3. **Template literals** for multi-line HTML strings
-4. **Arrow functions** for callbacks and utilities
-5. **Ternary operators** over if/else when concise
-6. **CSS classes prefixed** with `fcc-` to avoid conflicts with FreeCodeCamp's styles
+**Check console**: All TTS events logged (`Starting TTS with:`, `Chunk complete:`)
 
-## Known Limitations & TODOs
+**Browser support**: Test with `checkSpeechSupport()` - returns false if `speechSynthesis` unavailable
 
-- [ ] TTS functionality not implemented (UI only)
-- [ ] Configuration persistence (localStorage save/load)
-- [ ] Actual lecture content extraction from FreeCodeCamp
-- [ ] Audio playback controls (play/pause/speed)
-- [ ] Voice model loading and initialization
-- [ ] Error handling for model download failures
+**Timing fallbacks**: If word boundaries fail, engine falls back to `wordDuration` calculation (line 67 in engine.js)
 
-## Adding New Features
+## Integration Points
 
-**Example: Adding a new configuration option**
+- **FreeCodeCamp DOM**: Lecture content loaded asynchronously - always use `waitForContent()` (contentParser.js)
+- **LocalStorage**: Config saved as JSON string with key `freecodecampLectureReader` (lectify-settings.js)
+- **Web Speech API**: Global `window.speechSynthesis` - check browser compatibility at caniuse.com/speech-synthesis
 
-1. Add HTML to appropriate `sIC()` or `sMC()` section
-2. Include `fcc-animate-element` class on wrapper
-3. Add event listeners after `eLD` timeout
-4. Update `cfg` object with new property
-5. Recalculate container size in `tTP()` callback
-6. Test animation timing (200ms \* element count)
+## Documentation Map
 
-**Example: Adding a new TTS engine**
+- `MODULAR-BREAKDOWN.md` - Line-by-line mapping from original to modules
+- `WORKFLOW-GUIDE.md` - Build commands, development cycle
+- `LIBRARIES.md` - External library integration patterns
+- `MODULARIZATION-COMPLETE.md` - Refactoring completion summary
+- `user-script.js` - **Original monolith** (preserved for reference - DO NOT EDIT)
 
-1. Add radio option in `sIC()` with data-value attribute
-2. Create engine-specific configuration HTML in `sMC()`
-3. Update `cfg.ttsEngine` validation
-4. Implement engine-specific initialization logic
-5. Document model download sizes in UI descriptions
+## Anti-Patterns to Avoid
+
+- ❌ **Don't edit `user-script.js`** - it's archived for reference only
+- ❌ **Don't use jQuery** - uses vanilla JS with shorthand utilities
+- ❌ **Don't import CSS files** - CSS injected via `stylesInjector.js` as template literal
+- ❌ **Don't assume synchronous DOM** - FreeCodeCamp uses React, content loads async
+- ❌ **Don't break chunking logic** - TTS playback depends on precise sentence boundaries
+
+## Current Status
+
+**Completed**: All 10 modules extracted, build system functional, TTS engine operational
+
+**In Progress**: Full player UI integration (see TODO comments in `lectify-main.js` lines 50-60)
+
+**Next Steps** (from lectify-main.js):
+
+1. Complete wizard UI implementation
+2. Integrate player controls with TTS engine
+3. Test presentation mode with code block display
