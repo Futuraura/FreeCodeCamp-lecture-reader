@@ -1064,8 +1064,475 @@ body:has(.fcc-config-overlay) {
   }, 1e3);
   gS.onload = () => {};
   const aHL = () => {},
-    cfg = {
+    sLS = () => {
+      const lp = cE("div");
+      lp.className = "fcc-loading-page";
+      lp.innerHTML = `
+<div class="fcc-gradient-bg">
+  <div class="fcc-gradients-container">
+    <div class="g1"></div>
+    <div class="g2"></div>
+    <div class="g3"></div>
+    <div class="g4"></div>
+    <div class="g5"></div>
+  </div>
+</div>
+<div class="fcc-content-wrapper">
+  <div class="fcc-glass-container">
+    <div class="fcc-loading-content">
+      <div class="fcc-progress-container">
+        <div class="fcc-progress-bar" id="fcc-progress-bar" style="width: 0%"></div>
+      </div>
+      <div class="fcc-progress-info">
+        <div class="fcc-progress-text" id="fcc-progress-text">0%</div>
+        <div class="fcc-loading-status" id="fcc-status-text">Initializing...</div>
+      </div>
+    </div>
+  </div>
+</div>
+      `;
+      b.appendChild(lp);
+      requestAnimationFrame(() => lp.classList.add("fcc-visible"));
+      return {
+        elem: lp,
+        bar: lp.querySelector("#fcc-progress-bar"),
+        text: lp.querySelector("#fcc-progress-text"),
+        status: lp.querySelector("#fcc-status-text"),
+      };
+    },
+    hLS = (ls) => {
+      if (!ls || !ls.elem) return;
+      ls.elem.classList.remove("fcc-visible");
+      setTimeout(() => ls.elem.remove(), 500);
+    },
+    sC2LS = (cfg) => {
+      localStorage.setItem("freecodecampLectureReader", JSON.stringify(cfg));
+      const ls = sLS();
+      const statuses =
+        cfg.ttsEngine === "transformers"
+          ? [
+              { p: 0, t: "Initializing...", s: "Connecting to CDN..." },
+              { p: 10, t: "Starting download...", s: "Fetching model metadata..." },
+              { p: 25, t: "Downloading models...", s: "Downloading: speecht5_tts_base.bin" },
+              { p: 45, t: "Downloading models...", s: "Downloading: tokenizer.json" },
+              { p: 60, t: "Processing...", s: "Extracting model files..." },
+              { p: 75, t: "Almost there...", s: "Initializing TTS engine..." },
+              { p: 90, t: "Finalizing...", s: "Running test synthesis..." },
+              { p: 100, t: "Complete!", s: "Ready to use!" },
+            ]
+          : cfg.ttsEngine === "piper"
+          ? [
+              { p: 0, t: "Initializing...", s: "Connecting to CDN..." },
+              { p: 15, t: "Starting download...", s: "Fetching voice model..." },
+              { p: 40, t: "Downloading...", s: "Downloading: en_US-amy-medium.onnx" },
+              { p: 70, t: "Processing...", s: "Initializing Piper TTS..." },
+              { p: 90, t: "Almost there...", s: "Running test synthesis..." },
+              { p: 100, t: "Complete!", s: "Ready to use!" },
+            ]
+          : [
+              { p: 0, t: "Initializing...", s: "Connecting to Web Speech API..." },
+              { p: 50, t: "Loading...", s: "Initializing voices..." },
+              { p: 100, t: "Complete!", s: "Ready to use!" },
+            ];
+      let si = 0;
+      const uP = () => {
+        if (si < statuses.length) {
+          const st = statuses[si];
+          ls.bar.style.width = st.p + "%";
+          ls.text.textContent = st.p + "%";
+          ls.status.textContent = st.s;
+          si++;
+          const d = si < statuses.length - 2 ? 800 : 1200;
+          setTimeout(uP, d);
+        } else {
+          setTimeout(() => {
+            pC(cfg, ls, o);
+          }, 1000);
+        }
+      };
+      setTimeout(uP, 500);
+    },
+    pC = (cfg, ls, o) => {
+      // Wait for content to load
+      const waitForContent = setInterval(() => {
+        const cS = qS("#content-start");
+        const dS = qS("#description");
+        if (cS && dS) {
+          clearInterval(waitForContent);
+
+          const title = cS.textContent.trim();
+          const cD = [];
+          const preBlocks = [];
+          Array.from(dS.childNodes).forEach((node) => {
+            if (node.nodeType === 1 && node.tagName === "PRE") {
+              cD.push({
+                type: "pre",
+                index: preBlocks.length,
+                marker: `[CODE_BLOCK_${preBlocks.length}]`,
+              });
+              preBlocks.push(node.cloneNode(true));
+            } else if (node.nodeType === 3) {
+              const txt = node.textContent.trim();
+              if (txt) cD.push({ type: "text", content: txt });
+            } else if (node.nodeType === 1) {
+              const txt = node.textContent.trim();
+              if (txt) cD.push({ type: "text", content: txt });
+            }
+          });
+          const fullText = cD
+            .map((item) => (item.type === "text" ? item.content : item.marker || ""))
+            .join(" ");
+
+          // Remove loading screen and overlay
+          hLS(ls);
+          o.classList.remove("fcc-visible");
+          setTimeout(() => {
+            o.remove();
+
+            // Create compact player
+            const cp = cE("div");
+            cp.className = "fcc-compact-player";
+            cp.innerHTML = `
+<div class="fcc-gradient-bg">
+  <div class="fcc-gradients-container">
+    <div class="g1"></div>
+    <div class="g2"></div>
+    <div class="g3"></div>
+    <div class="g4"></div>
+    <div class="g5"></div>
+  </div>
+  <div class="fcc-content-wrapper">
+    <button class="fcc-next-btn">
+      <span class="fcc-next-btn-text">Play</span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>
+      </svg>
+    </button>
+  </div>
+</div>
+            `;
+            b.appendChild(cp);
+
+            qS(cp, ".fcc-next-btn").onclick = () => {
+              cp.classList.add("fcc-fullscreen");
+              setTimeout(() => sTTS(cfg, fullText, cD, preBlocks, cp), 500);
+            };
+          }, 500);
+        }
+      }, 100);
+    },
+    sP = (cfg, title, fullText, cD, preBlocks, ls) => {
+      ls.elem.style.display = "none";
+      const pres = cE("div");
+      pres.className = "fcc-presentation";
+      pres.innerHTML = `
+<div class="fcc-gradient-bg">
+  <div class="fcc-gradients-container">
+    <div class="g1"></div>
+    <div class="g2"></div>
+    <div class="g3"></div>
+    <div class="g4"></div>
+    <div class="g5"></div>
+  </div>
+</div>
+<div class="fcc-presentation-bg">
+  <div class="fcc-code-display"></div>
+</div>
+      `;
+      b.appendChild(pres);
+      const sC = pres.querySelector(".fcc-presentation-bg");
+      sLib.init(fullText.replace(/\[CODE_BLOCK_\d+\]/g, " "), sC);
+      requestAnimationFrame(() => pres.classList.add("fcc-visible"));
+      setTimeout(() => sTTS(cfg, fullText, cD, preBlocks, pres), 500);
+    },
+    sTTS = (cfg, fullText, cD, preBlocks, container) => {
+      const activeCfg = applyCfgDefaults(cfg);
+      Object.assign(cfg, {
+        ttsEngine: activeCfg.ttsEngine,
+        webspeech: { ...cfg.webspeech, ...activeCfg.webspeech },
+        subtitle: { ...cfg.subtitle, ...activeCfg.subtitle },
+      });
+      console.log("Starting TTS with:", {
+        engine: activeCfg.ttsEngine,
+        text: fullText,
+        preBlocks: preBlocks.length,
+      });
+
+      const subtitleSegments = [];
+      const codeEvents = [];
+      let runningWordCount = 0;
+
+      cD.forEach((item) => {
+        if (item.type === "text") {
+          const sanitized = (item.content || "").replace(/\[CODE_BLOCK_\d+\]/g, " ").trim();
+          if (sanitized.length) {
+            subtitleSegments.push(sanitized);
+            const words = sanitized.split(/\s+/).filter((w) => w.length > 0);
+            runningWordCount += words.length;
+          }
+        } else if (item.type === "pre") {
+          codeEvents.push({ position: runningWordCount, index: item.index });
+        }
+      });
+
+      const subtitleText = subtitleSegments.join(" ").replace(/\s+/g, " ").trim();
+
+      const host =
+        qS(container, ".fcc-presentation-bg") || qS(container, ".fcc-content-wrapper") || container;
+      let codeDisplay = qS(host, ".fcc-code-display");
+      if (!codeDisplay) {
+        codeDisplay = cE("div");
+        codeDisplay.className = "fcc-code-display";
+        host.appendChild(codeDisplay);
+      }
+      codeDisplay.classList.remove("fcc-visible");
+      codeDisplay.innerHTML = "";
+
+      sLib.init(subtitleText);
+      sLib.stA();
+      sLib.uS();
+
+      const chunksMeta = [];
+      let cumulativeWords = 0;
+      sLib.chunks.forEach((chunk) => {
+        const chunkText = (chunk || "").trim();
+        if (!chunkText.length) return;
+        const words = chunkText.split(/\s+/).filter((w) => w.length > 0);
+        if (!words.length) return;
+        const offsets = [];
+        const regex = /\S+/g;
+        let match;
+        while ((match = regex.exec(chunkText)) !== null) {
+          offsets.push({ start: match.index, end: match.index + match[0].length });
+        }
+        chunksMeta.push({
+          start: cumulativeWords,
+          end: cumulativeWords + words.length,
+          text: chunkText,
+          words,
+          offsets,
+        });
+        cumulativeWords += words.length;
+      });
+
+      const speechSupported =
+        activeCfg.ttsEngine === "webspeech" &&
+        typeof window !== "undefined" &&
+        "speechSynthesis" in window &&
+        typeof window.SpeechSynthesisUtterance !== "undefined";
+
+      if (speechSupported) {
+        window.speechSynthesis.cancel();
+      }
+
+      let voices = [];
+      if (speechSupported) {
+        const refreshVoices = () => {
+          voices = window.speechSynthesis.getVoices();
+        };
+        refreshVoices();
+        if (voices.length === 0) {
+          window.speechSynthesis.addEventListener(
+            "voiceschanged",
+            () => {
+              refreshVoices();
+            },
+            { once: true }
+          );
+        }
+      }
+
+      const resolveVoice = (preference) => {
+        if (!voices || voices.length === 0) return null;
+        if (preference === "default") return voices[0] || null;
+        const matcher =
+          preference === "female"
+            ? /female|woman|girl|samantha|victoria/i
+            : /male|man|boy|david|alex/i;
+        const exactMatch = voices.find((v) => matcher.test(v.name || ""));
+        if (exactMatch) return exactMatch;
+        return voices[0] || null;
+      };
+
+      const targetRate = activeCfg.webspeech?.rate ?? 1;
+      const wordDuration = Math.max(180, 320 / targetRate);
+
+      let codePointer = 0;
+      let activeCodeIndex = null;
+      let lastCodePosition = null;
+      let highlightSuppressed = false;
+
+      const showCodeBlock = (position, blockIdx) => {
+        if (blockIdx === activeCodeIndex) return;
+        const block = preBlocks[blockIdx];
+        if (!block) return;
+        codeDisplay.innerHTML = "";
+        codeDisplay.appendChild(block.cloneNode(true));
+        codeDisplay.classList.add("fcc-visible");
+        activeCodeIndex = blockIdx;
+        lastCodePosition = position;
+        highlightSuppressed = true;
+        sLib.clearHighlight();
+      };
+
+      const hideCodeBlock = () => {
+        if (activeCodeIndex === null) return;
+        codeDisplay.classList.remove("fcc-visible");
+        codeDisplay.innerHTML = "";
+        activeCodeIndex = null;
+        lastCodePosition = null;
+        highlightSuppressed = false;
+      };
+
+      const triggerCodeEvents = (globalWordIndex) => {
+        while (
+          codePointer < codeEvents.length &&
+          codeEvents[codePointer].position <= globalWordIndex
+        ) {
+          const evt = codeEvents[codePointer];
+          if (typeof evt.index === "number") {
+            showCodeBlock(evt.position, evt.index);
+          }
+          codePointer++;
+        }
+        if (lastCodePosition !== null && globalWordIndex > lastCodePosition) {
+          hideCodeBlock();
+        }
+      };
+
+      const playChunk = (meta) =>
+        new Promise((resolve) => {
+          if (!meta || meta.words.length === 0) {
+            triggerCodeEvents(meta ? meta.end : 0);
+            resolve();
+            return;
+          }
+
+          sLib.showChunk(meta.text);
+          sLib.uS();
+          triggerCodeEvents(meta.start);
+
+          let lastHighlightedIndex = -1;
+          let fallbackTimer = null;
+          let fallbackIndex = 0;
+          let boundaryTriggered = false;
+
+          const cleanup = () => {
+            if (fallbackTimer) {
+              clearTimeout(fallbackTimer);
+              fallbackTimer = null;
+            }
+          };
+
+          const finish = () => {
+            cleanup();
+            triggerCodeEvents(meta.end + 1);
+            hideCodeBlock();
+            resolve();
+          };
+
+          const highlightWordAt = (idx) => {
+            if (idx < 0 || idx >= meta.words.length) return;
+            if (idx === lastHighlightedIndex) return;
+            const globalIndex = meta.start + idx;
+            triggerCodeEvents(globalIndex);
+            if (highlightSuppressed) return;
+            sLib.highlightWord(idx);
+            lastHighlightedIndex = idx;
+          };
+
+          const advanceFallback = () => {
+            if (fallbackIndex >= meta.words.length) {
+              finish();
+              return;
+            }
+            highlightWordAt(fallbackIndex);
+            fallbackIndex += 1;
+            fallbackTimer = setTimeout(advanceFallback, wordDuration);
+          };
+
+          if (speechSupported) {
+            const utterance = new SpeechSynthesisUtterance(meta.text);
+            utterance.rate = targetRate;
+            const voice = resolveVoice(activeCfg.webspeech?.voice || "default");
+            if (voice) utterance.voice = voice;
+
+            const offsets = meta.offsets || [];
+            const findWordIndex = (charIndex) => {
+              if (!offsets.length) return -1;
+              for (let i = 0; i < offsets.length; i++) {
+                if (charIndex < offsets[i].end) {
+                  return i;
+                }
+              }
+              return offsets.length - 1;
+            };
+
+            utterance.onstart = () => {
+              if (meta.words.length > 0) {
+                highlightWordAt(0);
+              }
+            };
+
+            utterance.onboundary = (event) => {
+              if (typeof event.charIndex !== "number") return;
+              const idx = findWordIndex(event.charIndex);
+              if (idx === -1) return;
+              boundaryTriggered = true;
+              if (fallbackTimer) {
+                clearTimeout(fallbackTimer);
+                fallbackTimer = null;
+              }
+              highlightWordAt(idx);
+            };
+
+            utterance.onend = () => {
+              if (!boundaryTriggered && meta.words.length > 0) {
+                highlightWordAt(meta.words.length - 1);
+              }
+              finish();
+            };
+
+            utterance.onerror = () => {
+              finish();
+            };
+
+            window.speechSynthesis.speak(utterance);
+
+            fallbackTimer = setTimeout(() => {
+              if (!boundaryTriggered) {
+                advanceFallback();
+              }
+            }, Math.max(600, wordDuration));
+          } else {
+            advanceFallback();
+          }
+        });
+
+      const runPlayback = async () => {
+        if (chunksMeta.length === 0) {
+          triggerCodeEvents(0);
+          return;
+        }
+        for (const chunkMeta of chunksMeta) {
+          await playChunk(chunkMeta);
+        }
+      };
+
+      runPlayback()
+        .then(() => {
+          triggerCodeEvents(cumulativeWords + 1);
+          hideCodeBlock();
+          sLib.clearHighlight();
+        })
+        .catch((err) => console.error("TTS playback failed", err));
+    },
+    dCfg = {
       ttsEngine: null,
+      webspeech: {
+        voice: "default",
+        rate: 1,
+      },
       subtitle: {
         bgColor: "rgba(0, 0, 0, 0.85)",
         textColor: "#ffffff",
