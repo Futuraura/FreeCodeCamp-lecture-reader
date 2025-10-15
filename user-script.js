@@ -58,16 +58,41 @@ body:has(.fcc-config-overlay) {
 .fcc-config-overlay.fcc-visible {
   opacity: 1;
 }
+.fcc-content-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.fcc-loading-page .fcc-content-wrapper,
+.fcc-config-overlay .fcc-content-wrapper,
+.fcc-presentation .fcc-content-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.fcc-loading-page .fcc-content-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  box-sizing: border-box;
+}
 .fcc-cursor {
   display: none;
   pointer-events: none;
 }
 .fcc-gradient-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  position: relative;
-  overflow: hidden;
   background: linear-gradient(40deg, #6c00a2, #001152);
+  z-index: 0;
+  pointer-events: none;
 }
 .fcc-gradient-bg svg {
   position: fixed;
@@ -77,11 +102,14 @@ body:has(.fcc-config-overlay) {
   height: 0;
 }
 .fcc-gradients-container {
-  filter: url(#goo) blur(40px);
+  filter: url(#fcc-goo);
   width: 100%;
   height: 100%;
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   z-index: 0;
+  pointer-events: none;
 }
 .fcc-gradient-bg .g1,
 .fcc-gradient-bg .g2,
@@ -164,7 +192,7 @@ body:has(.fcc-config-overlay) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 10000;
+  z-index: 10;
   background: rgba(0, 0, 0, 0.7);
   border-radius: 0.75rem;
   padding: 0;
@@ -524,7 +552,7 @@ body:has(.fcc-config-overlay) {
   width: 80%;
   max-width: 800px;
   pointer-events: none;
-  z-index: 10002;
+  z-index: 10010;
 }
 .fcc-subtitle-container {
   padding: 1rem 1.5rem;
@@ -648,27 +676,342 @@ body:has(.fcc-config-overlay) {
 .clr-field button {
   display: none !important;
 }
+.fcc-loading-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10003;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+.fcc-loading-page.fcc-visible {
+  opacity: 1;
+}
+.fcc-loading-page .fcc-gradient-bg {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: linear-gradient(40deg, #6c00a2, #001152);
+}
+.fcc-loading-page .fcc-glass-container {
+  height: auto;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  width: 600px;
+  max-width: 90vw;
+}
+.fcc-loading-content {
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  z-index: 10010;
+}
+.fcc-progress-info {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.fcc-progress-container {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  height: 12px;
+  overflow: hidden;
+  position: relative;
+}
+.fcc-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #0072f5, #00a8ff);
+  border-radius: 0.5rem;
+  transition: width 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.fcc-progress-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.fcc-progress-text {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0;
+  white-space: nowrap;
+}
+.fcc-loading-status {
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-style: italic;
+  margin: 0;
+  flex: 1;
+  text-align: right;
+}
+.fcc-loading-page.fcc-compact .fcc-gradient-bg {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 350px;
+  height: 200px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.fcc-loading-page.fcc-compact .fcc-glass-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  max-width: none;
+  max-height: none;
+  border-radius: 0.75rem;
+}
+.fcc-loading-page.fcc-ready .fcc-glass-container {
+  padding: 0;
+}
+.fcc-loading-page.fcc-ready .fcc-loading-content {
+  padding: 0;
+  height: 100%;
+  justify-content: center;
+}
+.fcc-play-button {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0072f5, #00a8ff);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(0, 114, 245, 0.4);
+}
+.fcc-play-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 30px rgba(0, 114, 245, 0.6);
+}
+.fcc-play-button::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 24px solid white;
+  border-top: 15px solid transparent;
+  border-bottom: 15px solid transparent;
+  margin-left: 6px;
+}
+.fcc-presentation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10004;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+.fcc-presentation.fcc-visible {
+  opacity: 1;
+  pointer-events: all;
+}
+.fcc-presentation-bg {
+  position: absolute;
+  top: 128px;
+  left: 128px;
+  right: 128px;
+  bottom: 128px;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: linear-gradient(40deg, #6c00a2, #001152);
+}
+.fcc-code-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90%;
+  max-height: 80%;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 10;
+}
+.fcc-code-display.fcc-visible {
+  opacity: 1;
+}
+.fcc-code-display pre {
+  margin: 0;
+  color: #fff;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+.fcc-compact-player {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  width: auto;
+  height: auto;
+  z-index: 10003;
+  transition: all 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.fcc-compact-player .fcc-gradient-bg {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  position: relative;
+  padding: 16px;
+  min-width: 180px;
+  min-height: 60px;
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+.fcc-compact-player .fcc-gradients-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.fcc-compact-player .fcc-content-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.fcc-next-btn {
+  position: relative;
+  transform: none;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  pointer-events: all;
+}
+.fcc-next-btn-text {
+  order: 1;
+}
+.fcc-next-btn svg {
+  order: 2;
+  width: 16px;
+  height: 16px;
+}
+.fcc-next-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.05);
+}
+.fcc-compact-player .fcc-content-wrapper .fcc-next-btn {
+  pointer-events: auto;
+}
+.fcc-compact-player.fcc-fullscreen {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  width: 100vw;
+  height: 100vh;
+}
+.fcc-compact-player.fcc-fullscreen .fcc-gradient-bg {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 0;
+}
+.fcc-compact-player.fcc-fullscreen .fcc-content-wrapper {
+  align-items: stretch;
+  justify-content: stretch;
+}
+.fcc-compact-player.fcc-fullscreen .fcc-next-btn {
+  display: none;
+}
+.fcc-compact-player.fcc-fullscreen .fcc-gradients-container {
+  position: relative;
+  width: calc(100vw - 64px);
+  height: calc(100vh - 64px);
+  border-radius: 1rem;
+  background: linear-gradient(40deg, #6c00a2, #001152);
+}
   `;
   h.appendChild(s);
+
+  const ensureGooFilter = (() => {
+    let injected = !1;
+    return () => {
+      if (injected) return;
+      const svg = cE("svg");
+      svg.setAttribute("aria-hidden", "true");
+      svg.style.position = "absolute";
+      svg.style.width = "0";
+      svg.style.height = "0";
+      svg.innerHTML = `
+  <defs>
+    <filter id="fcc-goo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="blur" />
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo" />
+      <feBlend in="SourceGraphic" in2="goo" />
+    </filter>
+  </defs>`;
+      b.appendChild(svg);
+      injected = !0;
+    };
+  })();
+
+  ensureGooFilter();
 
   const o = cE("div");
   o.className = "fcc-config-overlay";
   o.innerHTML = `
 <div class="fcc-gradient-bg">
-  <svg xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <filter id="goo">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
-        <feColorMatrix
-          in="blur"
-          mode="matrix"
-          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8"
-          result="goo"
-        />
-        <feBlend in="SourceGraphic" in2="goo" />
-      </filter>
-    </defs>
-  </svg>
   <div class="fcc-gradients-container">
     <div class="g1"></div>
     <div class="g2"></div>
