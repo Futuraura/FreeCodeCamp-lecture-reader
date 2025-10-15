@@ -334,8 +334,11 @@ function showErrorDialog(error, retryCallback, errorContext = "operation") {
     // import { showConfigWizard } from './ui/wizard.js';
     // showConfigWizard();
 
-    alert(
-      "Lectify - Configuration Wizard\n\nNote: Wizard implementation coming next!\nFor now, check the modular code structure."
+    // Show info notification instead of blocking alert
+    await showInfoToast(
+      "Lectify - Configuration Wizard",
+      "Note: Wizard implementation coming next!\nFor now, check the modular code structure.",
+      8000
     );
   }
 })();
