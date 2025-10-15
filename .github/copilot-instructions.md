@@ -31,7 +31,8 @@ src/
 └── ui/
     ├── wizard.js            # Multi-step config (transitionToPage, showInitialConfig)
     ├── components.js        # Reusable controls (createSlider, initFontSizeControl)
-    └── subtitles.js         # SubtitleLibrary class - GSAP animations, word highlighting
+    ├── subtitles.js         # SubtitleLibrary class - GSAP animations, word highlighting
+    └── toast.js             # Toast notification system - non-blocking, accessible
 ```
 
 **Key insight**: Original 2,539-line file mapping documented in `MODULAR-BREAKDOWN.md`. Reference this when tracking features from `user-script.js` to new modules.
@@ -79,21 +80,21 @@ export default { startTTS, defaultConfig };
 
 ### External Dependencies
 
-Loaded via CDN using the `L()` utility from `dom.js`:
+Loaded via CDN using async `loadExternalLibraries()` function in `lectify-main.js`:
 
 ```javascript
-// From lectify-main.js
-import { L } from "./utils/dom.js";
-const gS = L("s", externalLibraries.gsap); // 's' = script
-const sC = L("l", externalLibraries.simplebar.css); // 'l' = link
+// Proper async loading with error handling
+await loadExternalLibraries(); // Waits for all libraries before init
 ```
 
 **Available libraries** (see `config/lectify-settings.js`):
 
-- **GSAP**: Subtitle animations, page transitions
-- **SimpleBar**: Custom scrollbars in config wizard
-- **Coloris**: Color picker for subtitle styling
-- **Iconify** (optional): 200k+ icons - see `LIBRARIES.md` for integration guide
+- **GSAP**: Subtitle animations, page transitions (critical)
+- **SimpleBar**: Custom scrollbars in config wizard (critical)
+- **Coloris**: Color picker for subtitle styling (critical)
+- **Iconify** (optional): 200k+ icons - integration pattern in `loadExternalLibraries()`
+
+**Loading pattern**: Each library returns a Promise that resolves on `onload` or rejects on `onerror`. CSS failures are non-fatal (resolve false), JS failures throw errors. The app continues with degraded functionality if non-critical libraries fail.
 
 **NPM dependencies** are bundled (HeroUI React components available but not yet integrated).
 
@@ -132,7 +133,39 @@ const sC = L("l", externalLibraries.simplebar.css); // 'l' = link
 
 **Code block extraction**: Finds `<pre>` tags, replaces with placeholders in text, stores separately for TTS timing.
 
-## Common Tasks
+## Error Handling Pattern
+
+**User-facing error dialogs**: All async operations that may fail show a custom modal with:
+
+- Clear error description for users
+- Technical error details for debugging
+- **Retry button**: Disables during retry, re-invokes the failed operation
+- **Report button**: Opens mailto with pre-filled error report (also logs to console)
+
+**Implementation** (see `showErrorDialog()` in `lectify-main.js`):
+
+```javascript
+try {
+  await someAsyncOperation();
+} catch (error) {
+  showErrorDialog(error, retryCallback, "context description");
+}
+```
+
+**Key features**:
+
+- Original error always logged to console for debugging
+- Buttons disable during retry to prevent duplicate calls
+- Retry failures recursively show new error dialog
+- Email template includes error stack, URL, user agent, timestamp
+
+## Documentation Map
+
+**Note**: Most documentation files have been consolidated. Only these remain:
+
+- `README.md` - Quick start and project overview
+- `.github/copilot-instructions.md` - This file (AI agent guide)
+- `user-script.js` - **Original monolith** (preserved for reference - DO NOT EDIT)
 
 ### Adding a New UI Control
 
@@ -183,12 +216,44 @@ const sC = L("l", externalLibraries.simplebar.css); // 'l' = link
 - ❌ **Don't import CSS files** - CSS injected via `stylesInjector.js` as template literal
 - ❌ **Don't assume synchronous DOM** - FreeCodeCamp uses React, content loads async
 - ❌ **Don't break chunking logic** - TTS playback depends on precise sentence boundaries
+- ❌ **Don't use blocking `alert()`** - use toast system (`showToast`, `showSuccessToast`, etc.) for non-blocking notifications
+
+## UI Notification System
+
+**Toast Component** (`ui/toast.js`): Non-blocking, accessible notifications
+
+```javascript
+import { showSuccessToast, showInfoToast, showWarningToast, showErrorToast } from "./ui/toast.js";
+
+// Basic usage
+await showSuccessToast("Title", "Message", 5000); // Auto-dismiss in 5s
+await showInfoToast("Info", "Details"); // Default 5s duration
+
+// Custom configuration
+await showToast({
+  title: "Custom",
+  message: "Multi-line\nsupported",
+  type: "warning", // 'info', 'success', 'warning', 'error'
+  duration: 8000, // 0 = persistent
+  dismissible: true, // Show close button
+});
+```
+
+**Features**:
+
+- Non-blocking (returns Promise that resolves on dismiss)
+- Accessible (ARIA live regions, keyboard support: Esc/Enter/Space to dismiss)
+- Animated slide-in from right with progress bar
+- Auto-stacking (multiple toasts stack vertically)
+- Type-specific colors and icons (info=blue, success=green, warning=yellow, error=red)
+
+**When to use**: Replace all `alert()`, `confirm()` with toast for better UX. For critical confirmations, use error dialogs (`showErrorDialog()`).
 
 ## Current Status
 
-**Completed**: All 10 modules extracted, build system functional, TTS engine operational
+**Completed**: All modules extracted, build system functional, TTS engine operational, toast notification system
 
-**In Progress**: Full player UI integration (see TODO comments in `lectify-main.js` lines 50-60)
+**In Progress**: Full player UI integration (see TODO comments in `lectify-main.js`)
 
 **Next Steps** (from lectify-main.js):
 
