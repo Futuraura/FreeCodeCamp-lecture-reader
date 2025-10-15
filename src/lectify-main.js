@@ -300,10 +300,11 @@ function showErrorDialog(error, retryCallback, errorContext = "operation") {
 
   if (savedConfig) {
     console.log("✅ Found saved configuration");
-    console.log("⏳ Waiting for lecture content...");
 
-    // Wait for content to load, then start player
-    try {
+    // Function to attempt loading content and starting player
+    const startPlayer = async () => {
+      console.log("⏳ Waiting for lecture content...");
+
       const content = await waitForContent();
       console.log("✅ Content loaded:", content.title);
 
@@ -311,11 +312,20 @@ function showErrorDialog(error, retryCallback, errorContext = "operation") {
       // import { startReturningUser } from './ui/player.js';
       // startReturningUser(savedConfig, content);
 
-      alert(
-        `Lectify Ready!\nLecture: ${content.title}\n\nNote: Full player implementation coming next!`
+      // Show success notification instead of blocking alert
+      await showSuccessToast(
+        "Lectify Ready!",
+        `Lecture: ${content.title}\n\nNote: Full player implementation coming next!`,
+        8000
       );
+    };
+
+    // Attempt to start player with error handling
+    try {
+      await startPlayer();
     } catch (error) {
-      console.error("❌ Failed to load content:", error);
+      // Show user-friendly error dialog with retry option
+      showErrorDialog(error, startPlayer, "loading lecture content");
     }
   } else {
     console.log("👋 First time user - showing configuration wizard");
