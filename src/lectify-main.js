@@ -300,46 +300,101 @@ function showErrorDialog(error, retryCallback, errorContext = "operation") {
 
   if (savedConfig) {
     console.log("✅ Found saved configuration");
+    console.log("🔧 TTS Engine:", savedConfig.ttsEngine || "webspeech");
+
+    let currentPlayer = null;
+    let currentURL = window.location.href;
 
     // Function to attempt loading content and starting player
-    const startPlayer = async () => {
+    const startPlayer = async (isReload = false) => {
       console.log("⏳ Waiting for lecture content...");
 
       const content = await waitForContent();
       console.log("✅ Content loaded:", content.title);
 
-      // TODO: Import and initialize player with saved config
-      // import { startReturningUser } from './ui/player.js';
-      // startReturningUser(savedConfig, content);
+      // Destroy previous player if it exists
+      if (currentPlayer && isReload) {
+        console.log("🔄 Destroying previous player for content reload");
+        if (currentPlayer.destroy) {
+          currentPlayer.destroy();
+        }
+      }
 
-      // Show success notification instead of blocking alert
-      await showSuccessToast(
-        "Lectify Ready!",
-        `Lecture: ${content.title}\n\nNote: Full player implementation coming next!`,
-        8000
+      // Import player
+      const { createPlayer } = await import("./ui/player.js");
+
+      // Import TTS engine (Web Speech API only)
+      const { createTTSController } = await import("./tts/buffered-engine.js");
+      console.log("🎤 Using Web Speech API TTS");
+
+      // Create player
+      const player = createPlayer(content, savedConfig);
+      currentPlayer = player;
+
+      // Create TTS controller with buffered engine (no subtitle lib needed - player handles it)
+      const ttsController = await createTTSController(
+        content.contentData,
+        player,
+        null, // No separate subtitle library
+        savedConfig
       );
+      player.setTTSController(ttsController);
+
+      console.log("✅ Lectify player ready!");
     };
+
+    // Monitor URL changes (SPA navigation)
+    const checkURLChange = () => {
+      const newURL = window.location.href;
+      if (newURL !== currentURL) {
+        console.log("🔄 URL changed, reloading content");
+        currentURL = newURL;
+        startPlayer(true).catch((error) => {
+          console.error("❌ Failed to reload content:", error);
+        });
+      }
+    };
+
+    // Check every 500ms for URL changes
+    setInterval(checkURLChange, 500);
+
+    // Also listen for popstate events
+    window.addEventListener("popstate", () => {
+      console.log("🔄 Popstate event, reloading content");
+      setTimeout(() => startPlayer(true), 100);
+    });
 
     // Attempt to start player with error handling
     try {
-      await startPlayer();
+      await startPlayer(false);
     } catch (error) {
       // Show user-friendly error dialog with retry option
-      showErrorDialog(error, startPlayer, "loading lecture content");
+      showErrorDialog(error, () => startPlayer(false), "loading lecture content");
     }
   } else {
     console.log("👋 First time user - showing configuration wizard");
 
-    // TODO: Import and show configuration wizard
-    // import { showConfigWizard } from './ui/wizard.js';
-    // showConfigWizard();
+    // Import and show configuration wizard
+    const { showConfigWizard } = await import("./ui/wizard.js");
 
-    // Show info notification instead of blocking alert
-    await showInfoToast(
-      "Lectify - Configuration Wizard",
-      "Note: Wizard implementation coming next!\nFor now, check the modular code structure.",
-      8000
-    );
+    try {
+      const config = await showConfigWizard();
+      console.log("✅ Configuration complete:", config);
+
+      // After configuration, reload the page to start with the new settings
+      showSuccessToast("Configuration Saved!", "Refreshing page to apply your settings...", 2000);
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.log("❌ Configuration cancelled or failed:", error);
+      showInfoToast(
+        "Configuration Cancelled",
+        "You can configure Lectify anytime by clearing your browser data for this site.",
+        5000
+      );
+    }
   }
 })();
 
