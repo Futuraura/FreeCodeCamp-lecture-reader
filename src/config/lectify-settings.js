@@ -13,12 +13,10 @@ export const defaultConfig = {
     rate: 1, // Speech rate (0.5 to 2)
   },
   subtitle: {
-    bgColor: "rgba(0, 0, 0, 0.85)",
-    textColor: "#ffffff",
-    highlightStyle: "text", // 'text' or 'background'
-    highlightTextColor: "#ffd700",
-    highlightBgColor: "#ffd700",
+    bgColor: "#000000",
     bgOpacity: 85, // 0-100
+    textColor: "#ffffff",
+    textOpacity: 100, // 0-100
     fontSize: 24, // pixels
   },
 };
