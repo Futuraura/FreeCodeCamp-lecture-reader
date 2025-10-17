@@ -3,13 +3,200 @@
  * Handles initial setup, model configuration, and subtitle appearance settings
  */
 
-import { cE, qS, qSA } from "../utils/dom.js";
+import { b, cE, qS, qSA, ensureGooFilter } from "../utils/dom.js";
 import { createSlider, initSlider, initFontSizeControl } from "./components.js";
+import { saveConfig, applyCfgDefaults, defaultConfig } from "../config/lectify-settings.js";
 
 /**
  * Wizard state and transition lock
  */
 const transitionLock = { locked: false };
+
+/**
+ * Main entry point - Show the configuration wizard
+ * Creates overlay with gradient background and guides user through configuration
+ * @returns {Promise<Object>} Resolves with final configuration when wizard is complete
+ */
+export function showConfigWizard() {
+  return new Promise((resolve, reject) => {
+    // Ensure goo filter is in the DOM
+    ensureGooFilter();
+
+    // Initialize configuration with defaults
+    const config = applyCfgDefaults({});
+
+    // Create overlay with initial welcome screen
+    const overlay = cE("div");
+    overlay.className = "fcc-config-overlay";
+    overlay.innerHTML = `
+<div class="fcc-gradient-bg">
+  <div class="fcc-gradients-container">
+    <div class="g1"></div>
+    <div class="g2"></div>
+    <div class="g3"></div>
+    <div class="g4"></div>
+    <div class="g5"></div>
+  </div>
+</div>
+<div class="fcc-content-wrapper">
+  <div class="fcc-glass-container">
+    <div class="fcc-glass-content-wrapper" data-simplebar>
+      <div class="fcc-glass-content-inner">
+        <h1 class="fcc-welcome-text fcc-animate-element">Welcome to Lectify</h1>
+        <button class="heroui-button fcc-initial">
+          <span class="heroui-button-text">Start</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+    b.appendChild(overlay);
+
+    const globalContainer = qS(overlay, ".fcc-glass-container");
+    const globalInterface = qS(overlay, ".fcc-glass-content-inner");
+
+    // Trigger fade-in animation
+    requestAnimationFrame(() => overlay.classList.add("fcc-visible"));
+
+    let simpleBar = null;
+
+    // Wait for SimpleBar library to load and initialize it
+    const waitForSimpleBar = setInterval(() => {
+      if (window.SimpleBar) {
+        clearInterval(waitForSimpleBar);
+        const wrapper = qS(overlay, "[data-simplebar]");
+        if (wrapper) {
+          simpleBar = new SimpleBar(wrapper, { autoHide: false, forceVisible: true });
+        }
+      }
+    }, 100);
+
+    // Animate welcome screen sizing
+    setTimeout(() => {
+      const welcomeText = qS(globalInterface, ".fcc-welcome-text");
+      const startButton = qS(globalInterface, ".heroui-button");
+
+      if (welcomeText && startButton) {
+        const textRect = welcomeText.getBoundingClientRect();
+        const buttonRect = startButton.getBoundingClientRect();
+        const padding = 96;
+        const gap = 32;
+        const width = Math.max(textRect.width, buttonRect.width) + padding;
+        const height = textRect.height + buttonRect.height + gap + padding;
+
+        globalContainer.style.width = width + "px";
+        globalContainer.style.height = height + "px";
+        globalContainer.classList.add("fcc-sized");
+
+        if (simpleBar) simpleBar.recalculate();
+
+        setTimeout(() => {
+          welcomeText.classList.add("fcc-visible");
+          startButton.classList.add("fcc-visible");
+        }, 1000);
+      }
+    }, 1000);
+
+    // Handle Start button click
+    const handleStart = () => {
+      showInitialConfig(
+        config,
+        globalInterface,
+        simpleBar,
+        globalContainer,
+        () => {
+          // On back from initial - close wizard
+          closeWizard(overlay, () => reject(new Error("User cancelled")));
+        },
+        () => {
+          // On next from initial - show model config
+          showModelConfig(
+            config,
+            defaultConfig,
+            globalInterface,
+            simpleBar,
+            globalContainer,
+            () => {
+              // On back from model - show initial
+              showInitialConfig(
+                config,
+                globalInterface,
+                simpleBar,
+                globalContainer,
+                () => closeWizard(overlay, () => reject(new Error("User cancelled"))),
+                () => {
+                  // This shouldn't happen but handle it anyway
+                  showModelConfig(
+                    config,
+                    defaultConfig,
+                    globalInterface,
+                    simpleBar,
+                    globalContainer,
+                    null,
+                    null
+                  );
+                },
+                true // backward
+              );
+            },
+            () => {
+              // On next from model - show subtitle config
+              showSubtitleConfig(
+                config,
+                globalInterface,
+                simpleBar,
+                globalContainer,
+                null, // No subtitle library needed
+                () => {
+                  // On back from subtitle - show model config
+                  showModelConfig(
+                    config,
+                    defaultConfig,
+                    globalInterface,
+                    simpleBar,
+                    globalContainer,
+                    null,
+                    null,
+                    true
+                  );
+                },
+                () => {
+                  // On finish from subtitle - save and close
+                  saveConfig(config);
+                  closeWizard(overlay, () => resolve(config));
+                },
+                true // backward
+              );
+            }
+          );
+        }
+      );
+    };
+
+    // Wait a bit then attach event listener to start button
+    setTimeout(() => {
+      const startButton = qS(globalInterface, ".heroui-button");
+      if (startButton) {
+        startButton.addEventListener("click", handleStart);
+      }
+    }, 1500);
+  });
+}
+
+/**
+ * Close the wizard overlay with fade-out animation
+ * @param {HTMLElement} overlay - Overlay element to remove
+ * @param {Function} callback - Callback to execute after closing
+ */
+function closeWizard(overlay, callback) {
+  overlay.classList.remove("fcc-visible");
+  setTimeout(() => {
+    overlay.remove();
+    if (callback) callback();
+  }, 500);
+}
 
 /**
  * Transition between wizard pages with slide animations
@@ -115,6 +302,7 @@ export function transitionToPage(
  * @param {HTMLElement} globalInterface - Main container element
  * @param {Object} simpleBar - SimpleBar instance
  * @param {HTMLElement} globalContainer - Container element
+ * @param {Function} onBack - Callback for back button
  * @param {Function} onNext - Callback for next button (goes to model config)
  * @param {boolean} backward - Animation direction
  */
@@ -123,56 +311,25 @@ export function showInitialConfig(
   globalInterface,
   simpleBar,
   globalContainer,
+  onBack,
   onNext,
   backward = false
 ) {
   const contentHtml = `<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Choose TTS Engine</label>
-  <div class="fcc-radio-option" data-value="webspeech">
-    <label class="fcc-radio-label"
-      ><input type="radio" name="tts-engine" value="webspeech" ${
-        config.ttsEngine === "webspeech" ? "checked" : ""
-      } />
-      <div class="fcc-radio-title">Web Speech API</div></label
-    >
-    <p class="fcc-radio-desc">
-      Built-in browser API. Works instantly with no downloads. Lightweight and fast, perfect for
-      quick setup.
-    </p>
-  </div>
-  <div class="fcc-radio-option" data-value="transformers">
-    <label class="fcc-radio-label"
-      ><input type="radio" name="tts-engine" value="transformers" ${
-        config.ttsEngine === "transformers" ? "checked" : ""
-      } />
-      <div class="fcc-radio-title">Transformers.js</div></label
-    >
-    <p class="fcc-radio-desc">
-      High-quality AI models running locally in your browser. Offers the best voice quality with
-      advanced neural networks (170-350MB download).
-    </p>
-  </div>
-  <div class="fcc-radio-option" data-value="piper">
-    <label class="fcc-radio-label"
-      ><input type="radio" name="tts-engine" value="piper" ${
-        config.ttsEngine === "piper" ? "checked" : ""
-      } />
-      <div class="fcc-radio-title">Piper TTS</div></label
-    >
-    <p class="fcc-radio-desc">
-      Balanced quality and performance. Fast neural TTS with natural-sounding voices (30-60MB
-      download).
-    </p>
-  </div>
+  <label class="fcc-option-label">Text-to-Speech Engine</label>
+  <p class="fcc-option-desc">
+    Using Web Speech API - built-in browser text-to-speech. Fast, lightweight, and works instantly with no downloads.
+  </p>
 </div>
 <div class="fcc-button-group fcc-animate-element">
-  <button class="heroui-button ${config.ttsEngine ? "" : "heroui-button-outline"}" id="next-btn" ${
-    config.ttsEngine ? "" : "disabled"
-  }>
+  <button class="heroui-button" id="next-btn">
     <span class="heroui-button-text">Next</span>
   </button>
 </div>
 `;
+
+  // Set default TTS engine
+  config.ttsEngine = "webspeech";
 
   transitionToPage(
     contentHtml,
@@ -183,52 +340,14 @@ export function showInitialConfig(
     globalContainer
   );
 
-  const elementsLoadDelay = 1200 + 3 * 100;
+  const elementsLoadDelay = 1200 + 1 * 100;
 
   setTimeout(() => {
-    const radioOptions = qSA(globalInterface, ".fcc-radio-option");
-    const radioInputs = qSA(globalInterface, 'input[name="tts-engine"]');
     const nextBtn = qS(globalInterface, "#next-btn");
-
-    // Highlight selected option
-    if (config.ttsEngine) {
-      const selectedOption = qS(
-        globalInterface,
-        `.fcc-radio-option[data-value="${config.ttsEngine}"]`
-      );
-      if (selectedOption) selectedOption.classList.add("selected");
-    }
-
-    // Click handlers for options
-    radioOptions.forEach((option, i) => {
-      option.addEventListener("click", () => {
-        radioInputs[i].checked = true;
-        config.ttsEngine = radioInputs[i].value;
-        radioOptions.forEach((o) => o.classList.remove("selected"));
-        option.classList.add("selected");
-        nextBtn.disabled = false;
-        nextBtn.classList.remove("heroui-button-outline");
-      });
-    });
-
-    // Change handlers for radio inputs
-    radioInputs.forEach((radio) => {
-      radio.addEventListener("change", () => {
-        config.ttsEngine = radio.value;
-        radioOptions.forEach((o) => o.classList.remove("selected"));
-        const selectedOption = qS(
-          globalInterface,
-          `.fcc-radio-option[data-value="${radio.value}"]`
-        );
-        if (selectedOption) selectedOption.classList.add("selected");
-        nextBtn.disabled = false;
-        nextBtn.classList.remove("heroui-button-outline");
-      });
-    });
 
     // Next button handler
     nextBtn.addEventListener("click", () => {
-      if (!nextBtn.disabled && !transitionLock.locked && onNext) {
+      if (!transitionLock.locked && onNext) {
         onNext();
       }
     });
@@ -236,7 +355,7 @@ export function showInitialConfig(
 }
 
 /**
- * Show model configuration screen (engine-specific settings)
+ * Show model configuration screen (TTS engine specific settings)
  * @param {Object} config - Configuration object
  * @param {Object} defaultConfig - Default configuration values
  * @param {HTMLElement} globalInterface - Main container element
@@ -244,6 +363,7 @@ export function showInitialConfig(
  * @param {HTMLElement} globalContainer - Container element
  * @param {Function} onBack - Callback for back button
  * @param {Function} onNext - Callback for next button (goes to subtitle config)
+ * @param {boolean} backward - Animation direction
  */
 export function showModelConfig(
   config,
@@ -252,15 +372,13 @@ export function showModelConfig(
   simpleBar,
   globalContainer,
   onBack,
-  onNext
+  onNext,
+  backward = false
 ) {
-  let optionsHtml = "";
+  const voicePref = config.webspeech?.voice || "default";
+  const ratePref = config.webspeech?.rate ?? 1;
 
-  if (config.ttsEngine === "webspeech") {
-    const voicePref = config.webspeech?.voice || "default";
-    const ratePref = config.webspeech?.rate ?? 1;
-
-    optionsHtml = `<div class="fcc-option-group fcc-animate-element">
+  const optionsHtml = `<div class="fcc-option-group fcc-animate-element">
   <label class="fcc-option-label">Voice</label>
   <p class="fcc-option-desc">Select a voice from your system's available voices.</p>
   <div class="fcc-radio-group">
@@ -292,76 +410,6 @@ export function showModelConfig(
   <p class="fcc-option-desc">Adjust how fast the text is read.</p>
   <div class="fcc-slider-container" id="rate-slider-container"></div>
 </div>`;
-  } else if (config.ttsEngine === "transformers") {
-    optionsHtml = `<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Model</label>
-  <p class="fcc-option-desc">
-    Choose the AI model to use. Larger models offer better quality but require more resources.
-  </p>
-  <div class="fcc-radio-group">
-    <div class="fcc-compact-radio selected" data-value="speecht5">
-      <label
-        ><input type="radio" name="model" value="speecht5" checked />
-        <span class="fcc-radio-title">SpeechT5 - Balanced (170MB)</span></label>
-    </div>
-    <div class="fcc-compact-radio" data-value="vits">
-      <label
-        ><input type="radio" name="model" value="vits" />
-        <span class="fcc-radio-title">VITS - High Quality (350MB)</span></label>
-    </div>
-  </div>
-</div>
-<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Voice Type</label>
-  <p class="fcc-option-desc">Select the voice characteristics.</p>
-  <div class="fcc-radio-group">
-    <div class="fcc-compact-radio selected" data-value="neutral">
-      <label
-        ><input type="radio" name="voice-type" value="neutral" checked />
-        <span class="fcc-radio-title">Neutral</span></label>
-    </div>
-    <div class="fcc-compact-radio" data-value="female">
-      <label
-        ><input type="radio" name="voice-type" value="female" />
-        <span class="fcc-radio-title">Female</span></label>
-    </div>
-    <div class="fcc-compact-radio" data-value="male">
-      <label
-        ><input type="radio" name="voice-type" value="male" />
-        <span class="fcc-radio-title">Male</span></label>
-    </div>
-  </div>
-</div>`;
-  } else if (config.ttsEngine === "piper") {
-    optionsHtml = `<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Voice Model</label>
-  <p class="fcc-option-desc">
-    Choose a Piper voice model. Quality affects file size and processing time.
-  </p>
-  <div class="fcc-radio-group">
-    <div class="fcc-compact-radio selected" data-value="en_US-lessac-medium">
-      <label
-        ><input type="radio" name="piper-voice" value="en_US-lessac-medium" checked />
-        <span class="fcc-radio-title">US English - Lessac (Medium, 30MB)</span></label>
-    </div>
-    <div class="fcc-compact-radio" data-value="en_US-lessac-high">
-      <label
-        ><input type="radio" name="piper-voice" value="en_US-lessac-high" />
-        <span class="fcc-radio-title">US English - Lessac (High, 60MB)</span></label>
-    </div>
-    <div class="fcc-compact-radio" data-value="en_GB-alan-medium">
-      <label
-        ><input type="radio" name="piper-voice" value="en_GB-alan-medium" />
-        <span class="fcc-radio-title">British English - Alan (Medium, 30MB)</span></label>
-    </div>
-  </div>
-</div>
-<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Speaking Speed</label>
-  <p class="fcc-option-desc">Adjust the speed of speech generation.</p>
-  <div class="fcc-slider-container" id="speed-slider-container"></div>
-</div>`;
-  }
 
   const contentHtml =
     optionsHtml +
@@ -377,7 +425,7 @@ export function showModelConfig(
   transitionToPage(
     contentHtml,
     "Model Configuration",
-    false,
+    backward,
     globalInterface,
     simpleBar,
     globalContainer
@@ -485,6 +533,18 @@ export function showSubtitleConfig(
   backward = false
 ) {
   const contentHtml = `<div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Background Color</label>
+  <p class="fcc-option-desc">Choose the color for subtitle background.</p>
+  <div class="fcc-color-picker-group">
+    <div class="fcc-color-input-wrapper">
+      <div class="fcc-color-input-row">
+        <input type="text" class="fcc-color-input coloris-input" id="bg-color-input" data-coloris />
+        <span class="fcc-color-preview" id="bg-color-preview"></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
   <label class="fcc-option-label">Background Opacity</label>
   <p class="fcc-option-desc">Adjust the transparency of the subtitle background.</p>
   <div class="fcc-slider-container" id="bg-opacity-slider"></div>
@@ -502,6 +562,11 @@ export function showSubtitleConfig(
   </div>
 </div>
 <div class="fcc-option-group fcc-animate-element">
+  <label class="fcc-option-label">Text Opacity</label>
+  <p class="fcc-option-desc">Adjust the transparency of the subtitle text.</p>
+  <div class="fcc-slider-container" id="text-opacity-slider"></div>
+</div>
+<div class="fcc-option-group fcc-animate-element">
   <label class="fcc-option-label">Font Size</label>
   <p class="fcc-option-desc">Adjust the size of subtitle text.</p>
   <div class="fcc-slider-container" id="font-size-slider"></div>
@@ -514,46 +579,6 @@ export function showSubtitleConfig(
     <button type="button" class="fcc-size-btn" data-size="24">Medium</button>
     <button type="button" class="fcc-size-btn" data-size="32">Large</button>
     <button type="button" class="fcc-size-btn" data-size="40">Extra Large</button>
-  </div>
-</div>
-<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Highlight Style</label>
-  <p class="fcc-option-desc">Choose how words are highlighted during reading.</p>
-  <div class="fcc-radio-group">
-    <div class="fcc-compact-radio selected" data-value="text">
-      <label
-        ><input type="radio" name="highlight-style" value="text" checked />
-        <span class="fcc-radio-title">Text Color Change</span></label>
-    </div>
-    <div class="fcc-compact-radio" data-value="background">
-      <label
-        ><input type="radio" name="highlight-style" value="background" />
-        <span class="fcc-radio-title">Background Rectangle</span></label>
-    </div>
-  </div>
-</div>
-<div class="fcc-option-group fcc-animate-element">
-  <label class="fcc-option-label">Highlight Text Color</label>
-  <p class="fcc-option-desc">Color of the highlighted word text.</p>
-  <div class="fcc-color-picker-group">
-    <div class="fcc-color-input-wrapper">
-      <div class="fcc-color-input-row">
-        <input type="text" class="fcc-color-input coloris-input" id="highlight-text-color-input" data-coloris />
-        <span class="fcc-color-preview" id="highlight-text-color-preview"></span>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="fcc-option-group fcc-animate-element" id="highlight-bg-color-group">
-  <label class="fcc-option-label">Highlight Background Color</label>
-  <p class="fcc-option-desc">Background color when using rectangle highlight style.</p>
-  <div class="fcc-color-picker-group">
-    <div class="fcc-color-input-wrapper">
-      <div class="fcc-color-input-row">
-        <input type="text" class="fcc-color-input coloris-input" id="highlight-bg-color-input" data-coloris />
-        <span class="fcc-color-preview" id="highlight-bg-color-preview"></span>
-      </div>
-    </div>
   </div>
 </div>
 <div class="fcc-button-group fcc-animate-element">
@@ -577,58 +602,73 @@ export function showSubtitleConfig(
   const elementsLoadDelay = 1200 + 8 * 200;
 
   setTimeout(() => {
-    // Initialize subtitle preview with sample text
-    subtitleLib.init("Let learning be the light of your new life", null, config);
-    subtitleLib.updateStyles();
-    subtitleLib.startAutoAdvance(300);
-
     // Background opacity slider
     const opacityLabels = {};
     for (let i = 0; i <= 100; i += 5) {
       opacityLabels[i] = `${i}%`;
     }
 
-    const opacityContainer = qS(globalInterface, "#bg-opacity-slider");
-    opacityContainer.innerHTML = createSlider(
+    const bgOpacityContainer = qS(globalInterface, "#bg-opacity-slider");
+    bgOpacityContainer.innerHTML = createSlider(
       0,
       100,
       5,
       config.subtitle.bgOpacity,
       opacityLabels,
-      "opacity-value"
+      "bg-opacity-value"
     );
 
-    const opacityValue = qS(opacityContainer, "#opacity-value");
-    const opacityTrack = qS(opacityContainer, ".fcc-slider-track");
-    initSlider(opacityTrack, opacityLabels, opacityValue);
+    const bgOpacityValue = qS(bgOpacityContainer, "#bg-opacity-value");
+    const bgOpacityTrack = qS(bgOpacityContainer, ".fcc-slider-track");
+    initSlider(bgOpacityTrack, opacityLabels, bgOpacityValue);
 
-    if (opacityValue) {
-      opacityValue.textContent = `${config.subtitle.bgOpacity}%`;
+    if (bgOpacityValue) {
+      bgOpacityValue.textContent = `${config.subtitle.bgOpacity}%`;
     }
 
-    opacityTrack.addEventListener("fcc-slider-change", (ev) => {
+    bgOpacityTrack.addEventListener("fcc-slider-change", (ev) => {
       const value = ev.detail.value;
       config.subtitle.bgOpacity = value;
-      if (opacityValue) {
-        opacityValue.textContent = `${value}%`;
+      if (bgOpacityValue) {
+        bgOpacityValue.textContent = `${value}%`;
       }
+    });
 
-      // Update background color with new opacity
-      const rgb = config.subtitle.bgColor.match(/\d+/g) || [0, 0, 0];
-      config.subtitle.bgColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${value / 100})`;
-      subtitleLib.updateStyles();
+    // Text opacity slider
+    const textOpacityContainer = qS(globalInterface, "#text-opacity-slider");
+    textOpacityContainer.innerHTML = createSlider(
+      0,
+      100,
+      5,
+      config.subtitle.textOpacity,
+      opacityLabels,
+      "text-opacity-value"
+    );
+
+    const textOpacityValue = qS(textOpacityContainer, "#text-opacity-value");
+    const textOpacityTrack = qS(textOpacityContainer, ".fcc-slider-track");
+    initSlider(textOpacityTrack, opacityLabels, textOpacityValue);
+
+    if (textOpacityValue) {
+      textOpacityValue.textContent = `${config.subtitle.textOpacity}%`;
+    }
+
+    textOpacityTrack.addEventListener("fcc-slider-change", (ev) => {
+      const value = ev.detail.value;
+      config.subtitle.textOpacity = value;
+      if (textOpacityValue) {
+        textOpacityValue.textContent = `${value}%`;
+      }
     });
 
     // Font size control
     initFontSizeControl(globalInterface, "#font-size-slider", ".fcc-size-btn", config, subtitleLib);
 
     // Color pickers
+    const bgColorInput = qS(globalInterface, "#bg-color-input");
     const textColorInput = qS(globalInterface, "#text-color-input");
-    const highlightTextColorInput = qS(globalInterface, "#highlight-text-color-input");
-    const highlightBgColorInput = qS(globalInterface, "#highlight-bg-color-input");
+    const bgColorPreview = qS(globalInterface, "#bg-color-preview");
     const textColorPreview = qS(globalInterface, "#text-color-preview");
-    const highlightTextColorPreview = qS(globalInterface, "#highlight-text-color-preview");
-    const highlightBgColorPreview = qS(globalInterface, "#highlight-bg-color-preview");
 
     const openPicker = (input) => {
       if (!input) return;
@@ -638,54 +678,16 @@ export function showSubtitleConfig(
     };
 
     // Set initial values
+    bgColorInput.value = config.subtitle.bgColor;
     textColorInput.value = config.subtitle.textColor;
-    highlightTextColorInput.value = config.subtitle.highlightTextColor;
-    highlightBgColorInput.value = config.subtitle.highlightBgColor;
 
+    if (bgColorPreview) bgColorPreview.style.background = config.subtitle.bgColor;
     if (textColorPreview) textColorPreview.style.background = config.subtitle.textColor;
-    if (highlightTextColorPreview)
-      highlightTextColorPreview.style.background = config.subtitle.highlightTextColor;
-    if (highlightBgColorPreview)
-      highlightBgColorPreview.style.background = config.subtitle.highlightBgColor;
 
     // Preview click handlers
+    if (bgColorPreview) bgColorPreview.addEventListener("click", () => openPicker(bgColorInput));
     if (textColorPreview)
       textColorPreview.addEventListener("click", () => openPicker(textColorInput));
-    if (highlightTextColorPreview)
-      highlightTextColorPreview.addEventListener("click", () =>
-        openPicker(highlightTextColorInput)
-      );
-    if (highlightBgColorPreview)
-      highlightBgColorPreview.addEventListener("click", () => openPicker(highlightBgColorInput));
-
-    // Highlight style radio buttons
-    const highlightStyleRadios = qSA(globalInterface, 'input[name="highlight-style"]');
-    const highlightBgColorGroup = qS(globalInterface, "#highlight-bg-color-group");
-
-    const updateHighlightStyleVisibility = () => {
-      const style = config.subtitle.highlightStyle;
-      if (highlightBgColorGroup) {
-        highlightBgColorGroup.style.display = style === "background" ? "block" : "none";
-      }
-    };
-    updateHighlightStyleVisibility();
-
-    // Compact radio handlers
-    qSA(globalInterface, ".fcc-compact-radio").forEach((radio) => {
-      radio.addEventListener("click", () => {
-        const input = qS(radio, 'input[type="radio"]');
-        if (input && input.name === "highlight-style") {
-          input.checked = true;
-          config.subtitle.highlightStyle = input.value;
-          qSA(globalInterface, 'input[name="highlight-style"]').forEach((r) =>
-            r.closest(".fcc-compact-radio").classList.remove("selected")
-          );
-          radio.classList.add("selected");
-          updateHighlightStyleVisibility();
-          subtitleLib.updateStyles();
-        }
-      });
-    });
 
     // Initialize Coloris (with retry if not loaded yet)
     const initColoris = () => {
@@ -699,24 +701,14 @@ export function showSubtitleConfig(
           wrap: true,
         });
 
+        bgColorInput.addEventListener("input", () => {
+          config.subtitle.bgColor = bgColorInput.value;
+          if (bgColorPreview) bgColorPreview.style.background = bgColorInput.value;
+        });
+
         textColorInput.addEventListener("input", () => {
           config.subtitle.textColor = textColorInput.value;
           if (textColorPreview) textColorPreview.style.background = textColorInput.value;
-          subtitleLib.updateStyles();
-        });
-
-        highlightTextColorInput.addEventListener("input", () => {
-          config.subtitle.highlightTextColor = highlightTextColorInput.value;
-          if (highlightTextColorPreview)
-            highlightTextColorPreview.style.background = highlightTextColorInput.value;
-          subtitleLib.updateStyles();
-        });
-
-        highlightBgColorInput.addEventListener("input", () => {
-          config.subtitle.highlightBgColor = highlightBgColorInput.value;
-          if (highlightBgColorPreview)
-            highlightBgColorPreview.style.background = highlightBgColorInput.value;
-          subtitleLib.updateStyles();
         });
       } else {
         setTimeout(initColoris, 100);
@@ -728,14 +720,12 @@ export function showSubtitleConfig(
     qS(globalInterface, "#back-btn").addEventListener("click", (e) => {
       e.preventDefault();
       if (transitionLock.locked) return;
-      subtitleLib.stopAutoAdvance();
       if (onBack) onBack();
     });
 
     qS(globalInterface, "#finish-btn").addEventListener("click", (e) => {
       e.preventDefault();
       if (transitionLock.locked) return;
-      subtitleLib.stopAutoAdvance();
       if (onFinish) onFinish();
     });
 
@@ -745,6 +735,7 @@ export function showSubtitleConfig(
 }
 
 export default {
+  showConfigWizard,
   transitionToPage,
   showInitialConfig,
   showModelConfig,
