@@ -158,7 +158,9 @@ export function initFontSizeControl(
     if (fontValue) {
       fontValue.textContent = fontLabels[value] || `${value}px`;
     }
-    subtitleLib.updateStyles();
+    if (subtitleLib) {
+      subtitleLib.updateStyles();
+    }
 
     // Update active button state
     sizeButtons.forEach((btn) => {
